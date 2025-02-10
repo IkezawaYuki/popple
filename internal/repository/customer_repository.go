@@ -2,62 +2,69 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"github.com/IkezawaYuki/popple/internal/domain/model"
-	"github.com/IkezawaYuki/popple/internal/domain/objects"
-	"gorm.io/gorm"
+	"github.com/IkezawaYuki/popple/internal/infrastructure"
 )
 
-type CustomerRepository struct {
-	db *gorm.DB
+type CustomerRepository interface {
+	Get(ctx context.Context, f infrastructure.Filter) ([]*model.Customer, error)
+	GetTx(ctx context.Context, f infrastructure.Filter, tx infrastructure.Transaction) ([]*model.Customer, error)
+	First(ctx context.Context, f infrastructure.Filter) (*model.Customer, error)
+	Save(ctx context.Context, customer *model.Customer) error
+	SaveTx(ctx context.Context, customer *model.Customer, tx infrastructure.Transaction) error
+	Delete(ctx context.Context, f infrastructure.Filter) error
+	DeleteTx(ctx context.Context, f infrastructure.Filter, tx infrastructure.Transaction) error
 }
 
-func NewCustomerRepository(db *gorm.DB) *CustomerRepository {
-	return &CustomerRepository{db: db}
+func NewCustomerRepository(dbDriver infrastructure.DBDriver) CustomerRepository {
+	return &customerRepository{
+		dbDriver: dbDriver,
+	}
 }
 
-func (c *CustomerRepository) FindAll(ctx context.Context) ([]model.Customer, error) {
-	var dto []model.Customer
-	err := c.db.WithContext(ctx).Find(&dto).Error
-	return dto, err
+type customerRepository struct {
+	dbDriver infrastructure.DBDriver
 }
 
-func (c *CustomerRepository) FindByID(ctx context.Context, id int) (*model.Customer, error) {
+func (c *customerRepository) Get(ctx context.Context, f infrastructure.Filter) ([]*model.Customer, error) {
+	var customers []*model.Customer
+	err := c.dbDriver.Find(ctx, &customers, f)
+	if err != nil {
+		return nil, err
+	}
+	return customers, nil
+}
+
+func (c *customerRepository) GetTx(ctx context.Context, f infrastructure.Filter, tx infrastructure.Transaction) ([]*model.Customer, error) {
+	var customers []*model.Customer
+	err := c.dbDriver.FindTx(ctx, &customers, f, tx)
+	if err != nil {
+		return nil, err
+	}
+	return customers, nil
+}
+
+func (c *customerRepository) First(ctx context.Context, f infrastructure.Filter) (*model.Customer, error) {
 	var customer model.Customer
-	result := c.db.WithContext(ctx).First(&customer, "id = ?", id)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, objects.ErrNotFound
-		}
-		return nil, result.Error
+	err := c.dbDriver.First(ctx, &customer, f)
+	if err != nil {
+		return nil, err
 	}
 	return &customer, nil
 }
 
-func (c *CustomerRepository) FindByIDTx(ctx context.Context, id string, tx *gorm.DB) (*model.Customer, error) {
-	var customer model.Customer
-	result := tx.WithContext(ctx).First(&customer, id)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, errors.New("not found")
-		}
-		return nil, result.Error
-	}
-	return &customer, nil
+func (c *customerRepository) Save(ctx context.Context, customer *model.Customer) error {
+	return c.dbDriver.Save(ctx, customer)
 }
 
-func (c *CustomerRepository) FindByEmail(ctx context.Context, email string) (*model.Customer, error) {
-	var customer model.Customer
-	result := c.db.WithContext(ctx).First(&customer, "email = ?", email)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, objects.ErrNotFound
-		}
-		return nil, result.Error
-	}
-	return &customer, nil
+func (c *customerRepository) SaveTx(ctx context.Context, customer *model.Customer, tx infrastructure.Transaction) error {
+	return c.dbDriver.SaveTx(ctx, customer, tx)
 }
 
-func (c *CustomerRepository) Save(ctx context.Context, customer *model.Customer) *gorm.DB {
-	return c.db.WithContext(ctx).Save(customer)
+func (c *customerRepository) Delete(ctx context.Context, f infrastructure.Filter) error {
+	return c.dbDriver.Delete(ctx, &model.Customer{}, f)
+}
+
+func (c *customerRepository) DeleteTx(ctx context.Context, f infrastructure.Filter, tx infrastructure.Transaction) error {
+	return c.dbDriver.DeleteTx(ctx, &model.Customer{}, f, tx)
 }

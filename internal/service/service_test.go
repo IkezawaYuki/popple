@@ -16,10 +16,10 @@ import (
 )
 
 var (
-	adminSrv     *AdminService
+	adminSrv     *adminService
 	authSrv      *AuthService
 	customerSrv  *CustomerService
-	postSrv      *PostService
+	postSrv      *postService
 	wordpressSrv *WordpressRestAPI
 	graphSrv     *GraphAPI
 	fileTransfer *FileService

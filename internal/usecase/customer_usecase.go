@@ -4,30 +4,36 @@ import (
 	"context"
 	"fmt"
 	"github.com/IkezawaYuki/popple/internal/domain/entity"
+	"github.com/IkezawaYuki/popple/internal/domain/model"
+	"github.com/IkezawaYuki/popple/internal/domain/objects"
 	"github.com/IkezawaYuki/popple/internal/repository"
 	"github.com/IkezawaYuki/popple/internal/service"
 )
 
-type CustomerUsecase struct {
-	baseRepository   *repository.BaseRepository
-	customerService  *service.CustomerService
-	authService      *service.AuthService
-	postService      *service.PostService
-	wordpressRestApi *service.WordpressRestAPI
-	graphApi         *service.GraphAPI
-	fileTransfer     *service.FileService
+type customerUsecase struct {
+	baseRepository   repository.BaseRepository
+	customerService  service.CustomerService
+	authService      service.AuthService
+	postService      service.PostService
+	wordpressRestApi service.WordpressRestAPI
+	graphApi         service.GraphAPI
+	fileTransfer     service.FileService
+}
+
+type CustomerUsecase interface {
+	FetchAndPost(ctx context.Context, customerID int) error
 }
 
 func NewCustomerUsecase(
-	baseRepo *repository.BaseRepository,
-	customerSrv *service.CustomerService,
-	authSrv *service.AuthService,
-	postService *service.PostService,
-	wordpressRestApi *service.WordpressRestAPI,
-	graphApi *service.GraphAPI,
-	fileTransfer *service.FileService,
-) *CustomerUsecase {
-	return &CustomerUsecase{
+	baseRepo repository.BaseRepository,
+	customerSrv service.CustomerService,
+	authSrv service.AuthService,
+	postService service.PostService,
+	wordpressRestApi service.WordpressRestAPI,
+	graphApi service.GraphAPI,
+	fileTransfer service.FileService,
+) CustomerUsecase {
+	return &customerUsecase{
 		baseRepository:   baseRepo,
 		customerService:  customerSrv,
 		authService:      authSrv,
@@ -38,16 +44,16 @@ func NewCustomerUsecase(
 	}
 }
 
-func (c *CustomerUsecase) FindAll(ctx context.Context) ([]entity.Customer, error) {
+func (c *customerUsecase) FindAll(ctx context.Context) ([]*model.Customer, error) {
 	return c.customerService.FindAll(ctx)
 }
 
-func (c *CustomerUsecase) GetCustomer(ctx context.Context, id int) (*entity.Customer, error) {
+func (c *customerUsecase) GetCustomer(ctx context.Context, id int) (*model.Customer, error) {
 	return c.customerService.FindByID(ctx, id)
 }
 
-func (c *CustomerUsecase) Login(ctx context.Context, user *entity.User) (string, error) {
-	customer, err := c.customerService.GetCustomerByEmail(ctx, user.Email)
+func (c *customerUsecase) Login(ctx context.Context, user *entity.User) (string, error) {
+	customer, err := c.customerService.FindByEmail(ctx, user.Email)
 	if err != nil {
 		return "", err
 	}
@@ -57,61 +63,70 @@ func (c *CustomerUsecase) Login(ctx context.Context, user *entity.User) (string,
 	return c.authService.GenerateJWTCustomer(customer)
 }
 
-func (c *CustomerUsecase) FetchAndPost(ctx context.Context, customerID int) error {
+func (c *customerUsecase) FetchAndPost(ctx context.Context, customerID int) error {
 	customer, err := c.customerService.FindByID(ctx, customerID)
 	if err != nil {
-		return err
+		return objects.ErrNotFound
 	}
 	if customer.FacebookToken == nil {
 		return fmt.Errorf("customer.FacebookToken is nil")
 	}
-	mediaList, err := c.graphApi.GetMediaIDList(ctx, customer.FacebookToken, customer.InstagramID)
+
+	// インスタグラムの投稿を最新から50件取得する
+	instagramPosts, err := c.graphApi.GetInstagramPosts(ctx, *customer.FacebookToken, *customer.InstagramID)
 	if err != nil {
 		return err
 	}
-	for _, media := range mediaList {
-		linked, err := c.postService.IsLinked(ctx, media)
+	for _, instagramMedia := range instagramPosts.Media.Data {
+		isLinked, err := c.postService.IsLinked(ctx, instagramMedia.ID)
 		if err != nil {
 			return err
 		}
-		if linked {
+		// 連携済みのものは処理をスキップ
+		if isLinked {
 			continue
 		}
-		detail, err := c.graphApi.GetMediaDetail(ctx, customer.FacebookToken, media)
+
+		// 一時フォルダを作り、メディアをダウンロード
+		err = c.fileTransfer.MakeTempDirectory(customerID)
 		if err != nil {
 			return err
 		}
-		post, err := c.postService.SaveInstagramPost(ctx, customerID, detail)
+		fileList, err := c.fileTransfer.DownloadMediaFiles(ctx, customerID, instagramMedia)
 		if err != nil {
 			return err
 		}
-		if err := c.graphApi.GetMediaChild(ctx, customer.FacebookToken, detail); err != nil {
-			return err
-		}
-		if err := c.fileTransfer.MakeTempDirectory(customerID); err != nil {
-			return err
-		}
-		mediaPaths, err := c.fileTransfer.DownloadMedias(ctx, customerID, detail)
+
+		// ワードプレスにメディアをアップロード
+		wordpressMedia, err := c.wordpressRestApi.UploadFiles(ctx, customer.WordpressURL, fileList)
 		if err != nil {
 			return err
 		}
-		fmt.Println(mediaPaths)
-		wordpressMedia, err := c.wordpressRestApi.UploadFiles(ctx, customer.WordpressURL, mediaPaths)
+
+		wordpressResp, err := c.wordpressRestApi.CreatePost(ctx, customer.WordpressURL, instagramMedia, wordpressMedia)
 		if err != nil {
 			return err
 		}
-		wordpressLink, err := c.wordpressRestApi.CreatePosts(ctx, customer.WordpressURL, detail, wordpressMedia)
+
+		err = c.postService.Create(ctx, &model.Post{
+			CustomerID:       customerID,
+			InstagramMediaID: instagramMedia.ID,
+			InstagramLink:    instagramMedia.MediaURL,
+			WordpressMediaID: wordpressResp.PostId,
+			WordpressLink:    wordpressResp.PostUrl,
+		})
 		if err != nil {
 			return err
 		}
-		post.WordpressLink = &wordpressLink
-		if err := c.postService.SaveWordpressPost(ctx, post); err != nil {
+
+		err = c.fileTransfer.RemoveTempDirectory(customerID)
+		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *CustomerUsecase) GetPostsByCustomerID(ctx context.Context, customerID int) ([]entity.Post, error) {
+func (c *customerUsecase) GetPostsByCustomerID(ctx context.Context, customerID int) ([]*model.Post, error) {
 	return c.postService.FindByCustomerID(ctx, customerID)
 }

@@ -8,16 +8,20 @@ import (
 	"github.com/IkezawaYuki/popple/internal/domain/entity"
 	"github.com/IkezawaYuki/popple/internal/domain/objects"
 	"github.com/IkezawaYuki/popple/internal/infrastructure"
-	"time"
 )
 
-type GraphAPI struct {
+type graphAPI struct {
 	httpClient *infrastructure.HttpClient
 	baseURL    string
 }
 
-func NewGraph(httpClient *infrastructure.HttpClient) *GraphAPI {
-	return &GraphAPI{
+type GraphAPI interface {
+	GetInstagramBusinessAccountID(ctx context.Context, facebookToken string) (string, error)
+	GetInstagramPosts(ctx context.Context, facebookToken string, instagramID string) (*entity.InstagramPosts, error)
+}
+
+func NewGraph(httpClient *infrastructure.HttpClient) GraphAPI {
+	return &graphAPI{
 		httpClient: httpClient,
 		baseURL:    config.Env.GraphApiURL,
 	}
@@ -38,7 +42,7 @@ type GraphApiMeResponse struct {
 	} `json:"accounts"`
 }
 
-func (i *GraphAPI) GetInstagramBusinessAccountID(ctx context.Context, facebookToken string) (string, error) {
+func (i *graphAPI) GetInstagramBusinessAccountID(ctx context.Context, facebookToken string) (string, error) {
 	resp, err := i.httpClient.GetRequest(ctx,
 		i.baseURL+getInstagramBusinessAccountURL,
 		fmt.Sprintf("Bearer %s", facebookToken))
@@ -56,112 +60,19 @@ func (i *GraphAPI) GetInstagramBusinessAccountID(ctx context.Context, facebookTo
 	return instagram.Accounts.Data[0].InstagramBusinessAccount.ID, nil
 }
 
-const getMediaList = "/%s/media"
+const getInstagramPosts = "%s?fields=media{id,permalink,caption,timestamp,media_type,media_url,children{media_type,media_url}}"
 
-type InstagramMediaList struct {
-	Data []struct {
-		ID string `json:"id"`
-	} `json:"data"`
-}
-
-func (i *GraphAPI) GetMediaIDList(ctx context.Context, facebookToken, instagramID *string) ([]string, error) {
-	fmt.Println("GetMediaIDList is invoked")
-	fmt.Println(*instagramID)
-	fmt.Println(*facebookToken)
-	fmt.Println(i.baseURL + fmt.Sprintf(getMediaList, *instagramID))
+func (i *graphAPI) GetInstagramPosts(ctx context.Context, facebookToken string, instagramID string) (*entity.InstagramPosts, error) {
 	resp, err := i.httpClient.GetRequest(ctx,
-		i.baseURL+fmt.Sprintf(getMediaList, *instagramID),
-		fmt.Sprintf("Bearer %s", *facebookToken))
-	if err != nil {
-		return nil, err
-	}
-	var mediaList InstagramMediaList
-	if err := json.Unmarshal(resp, &mediaList); err != nil {
-		return nil, err
-	}
-	fmt.Println(mediaList)
-	mediaIdList := make([]string, len(mediaList.Data))
-	for idx, media := range mediaList.Data {
-		mediaIdList[idx] = media.ID
-	}
-	return mediaIdList, nil
-}
-
-const getMediaDetail = "/%s?fields=media_type,media_url,id,caption,timestamp,permalink,children"
-
-type InstagramMediaDetail struct {
-	ID        string             `json:"id"`
-	Caption   string             `json:"caption"`
-	MediaType string             `json:"media_type"`
-	MediaURL  string             `json:"media_url"`
-	Timestamp string             `json:"timestamp"`
-	Permalink string             `json:"permalink"`
-	Children  InstagramMediaList `json:"children"`
-}
-
-func (i *GraphAPI) GetMediaDetail(ctx context.Context, facebookToken *string, mediaID string) (*entity.InstagramPost, error) {
-	fmt.Println("GetMediaDetail is invoked")
-	resp, err := i.httpClient.GetRequest(ctx,
-		i.baseURL+fmt.Sprintf(getMediaDetail, mediaID),
-		fmt.Sprintf("Bearer %s", *facebookToken),
+		i.baseURL+fmt.Sprintf(getInstagramPosts, instagramID),
+		fmt.Sprintf("Bearer %s", facebookToken),
 	)
 	if err != nil {
 		return nil, err
 	}
-	var detail InstagramMediaDetail
-	if err := json.Unmarshal(resp, &detail); err != nil {
+	var posts entity.InstagramPosts
+	if err := json.Unmarshal(resp, &posts); err != nil {
 		return nil, err
 	}
-	var post entity.InstagramPost
-	post.ID = detail.ID
-	post.Caption = detail.Caption
-	post.MediaType = detail.MediaType
-	post.MediaURL = detail.MediaURL
-	timestamp, err := time.Parse("2006-01-02T15:04:05-0700", detail.Timestamp)
-	if err != nil {
-		return nil, err
-	}
-	post.Timestamp = timestamp
-
-	if len(detail.Children.Data) > 0 {
-		children := make([]string, len(detail.Children.Data))
-		for idx, child := range detail.Children.Data {
-			children[idx] = child.ID
-		}
-		post.ChildrenID = children
-	}
-
-	return &post, nil
-}
-
-const getMediaChildURL = "/%s?fields=media_url,media_type"
-
-type InstagramMediaChild struct {
-	ID        string `json:"id"`
-	MediaType string `json:"media_type"`
-	MediaURL  string `json:"media_url"`
-}
-
-func (i *GraphAPI) GetMediaChild(ctx context.Context, facebookToken *string, post *entity.InstagramPost) error {
-	if len(post.ChildrenID) == 0 {
-		return nil
-	}
-	contents := make([]entity.ChildMedia, len(post.ChildrenID))
-	for idx, childID := range post.ChildrenID {
-		resp, err := i.httpClient.GetRequest(ctx, i.baseURL+fmt.Sprintf(getMediaChildURL, childID), fmt.Sprintf("Bearer %s", *facebookToken))
-		if err != nil {
-			return err
-		}
-		var content InstagramMediaChild
-		if err := json.Unmarshal(resp, &content); err != nil {
-			return err
-		}
-		contents[idx] = entity.ChildMedia{
-			ID:        content.ID,
-			MediaURL:  content.MediaURL,
-			MediaType: content.MediaType,
-		}
-	}
-	post.ChildrenContent = contents
-	return nil
+	return &posts, nil
 }

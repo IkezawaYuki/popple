@@ -3,45 +3,45 @@ package usecase
 import (
 	"context"
 	"github.com/IkezawaYuki/popple/internal/domain/entity"
+	"github.com/IkezawaYuki/popple/internal/domain/model"
 	"github.com/IkezawaYuki/popple/internal/domain/objects"
 	"github.com/IkezawaYuki/popple/internal/repository"
 	"github.com/IkezawaYuki/popple/internal/service"
 )
 
-type AdminUsecase struct {
-	baseRepository  *repository.BaseRepository
-	adminService    *service.AdminService
-	authService     *service.AuthService
-	customerService *service.CustomerService
-	postService     *service.PostService
-	customerUsecase *CustomerUsecase
+type adminUsecase struct {
+	baseRepository  repository.BaseRepository
+	adminService    service.AdminService
+	authService     service.AuthService
+	customerService service.CustomerService
+	postService     service.PostService
 }
 
+type AdminUsecase interface{}
+
 func NewAdminUsecase(
-	baseRepo *repository.BaseRepository,
-	adminSrv *service.AdminService,
-	authSrv *service.AuthService,
-	customerSrv *service.CustomerService,
-	customerUsecase *CustomerUsecase,
-) *AdminUsecase {
-	return &AdminUsecase{
+	baseRepo repository.BaseRepository,
+	adminSrv service.AdminService,
+	authSrv service.AuthService,
+	customerService service.CustomerService,
+) AdminUsecase {
+	return &adminUsecase{
 		baseRepository:  baseRepo,
 		adminService:    adminSrv,
 		authService:     authSrv,
-		customerService: customerSrv,
-		customerUsecase: customerUsecase,
+		customerService: customerService,
 	}
 }
 
-func (a *AdminUsecase) RegisterCustomer(ctx context.Context, customer *entity.Customer) error {
-	return a.customerService.CreateCustomer(ctx, customer)
+func (a *adminUsecase) RegisterCustomer(ctx context.Context, customer *model.Customer) (*model.Customer, error) {
+	panic("implement me")
 }
 
-func (a *AdminUsecase) RegisterAdmin(ctx context.Context, admin *entity.Admin) error {
-	return a.adminService.CreateAdmin(ctx, admin)
+func (a *adminUsecase) RegisterAdmin(ctx context.Context, admin *model.Admin) error {
+	panic("implement me")
 }
 
-func (a *AdminUsecase) Login(ctx context.Context, user *entity.User) (string, error) {
+func (a *adminUsecase) Login(ctx context.Context, user *entity.User) (string, error) {
 	customer, err := a.adminService.FindByEmail(ctx, user.Email)
 	if err != nil {
 		return "", objects.ErrNotFound
@@ -52,22 +52,22 @@ func (a *AdminUsecase) Login(ctx context.Context, user *entity.User) (string, er
 	return a.authService.GenerateJWTAdmin(customer)
 }
 
-func (a *AdminUsecase) GetCustomers(ctx context.Context) ([]entity.Customer, error) {
+func (a *adminUsecase) GetCustomers(ctx context.Context) ([]*model.Customer, error) {
 	return a.customerService.FindAll(ctx)
 }
 
-func (a *AdminUsecase) GetCustomer(ctx context.Context, id int) (*entity.Customer, error) {
+func (a *adminUsecase) GetCustomer(ctx context.Context, id int) (*model.Customer, error) {
 	return a.customerService.FindByID(ctx, id)
 }
 
-func (a *AdminUsecase) GetAdmins(ctx context.Context) ([]entity.Admin, error) {
+func (a *adminUsecase) GetAdmins(ctx context.Context) ([]*model.Admin, error) {
 	return a.adminService.FindAll(ctx)
 }
 
-func (a *AdminUsecase) GetAdmin(ctx context.Context, id int) (*entity.Admin, error) {
+func (a *adminUsecase) GetAdmin(ctx context.Context, id int) (*model.Admin, error) {
 	return a.adminService.FindByID(ctx, id)
 }
 
-func (a *AdminUsecase) GetPostByCustomer(ctx context.Context, customerId int) ([]entity.Post, error) {
+func (a *adminUsecase) GetPostByCustomer(ctx context.Context, customerId int) ([]*model.Post, error) {
 	return a.postService.FindByCustomerID(ctx, customerId)
 }

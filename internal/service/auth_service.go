@@ -1,8 +1,6 @@
 package service
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"github.com/IkezawaYuki/popple/config"
 	"github.com/IkezawaYuki/popple/internal/domain/entity"
@@ -11,25 +9,30 @@ import (
 	"github.com/IkezawaYuki/popple/internal/repository"
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"log/slog"
 	"strings"
 	"time"
 )
 
-type AuthService struct {
+type authService struct {
 	customerRepository *repository.CustomerRepository
 	redisClient        *repository.RedisClient
 }
 
-func NewAuthService(customerRepo *repository.CustomerRepository, redisClient *repository.RedisClient) *AuthService {
-	return &AuthService{
+type AuthService interface {
+	CheckPassword(user *entity.User, password string) error
+	GenerateJWTAdmin(admin *model.Admin) (string, error)
+	GenerateJWTCustomer(c *model.Customer) (string, error)
+}
+
+func NewAuthService(customerRepo *repository.CustomerRepository, redisClient *repository.RedisClient) AuthService {
+	return &authService{
 		customerRepository: customerRepo,
 		redisClient:        redisClient,
 	}
 }
 
-func (a *AuthService) IsCustomerIsLogin(tokenString string) (int, error) {
+func (a *authService) IsCustomerIsLogin(tokenString string) (int, error) {
 	slog.Info("IsCustomerIsLogin is invoked")
 	slog.Info(tokenString)
 	tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
@@ -54,7 +57,7 @@ func (a *AuthService) IsCustomerIsLogin(tokenString string) (int, error) {
 	return int(claims["sub"].(float64)), nil
 }
 
-func (a *AuthService) IsAdminLogin(tokenString string) (int, error) {
+func (a *authService) IsAdminLogin(tokenString string) (int, error) {
 	slog.Info("IsAdminLogin is invoked")
 	tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -77,7 +80,7 @@ func (a *AuthService) IsAdminLogin(tokenString string) (int, error) {
 	return int(claims["sub"].(float64)), nil
 }
 
-func (a *AuthService) GenerateJWTCustomer(c *entity.Customer) (string, error) {
+func (a *authService) GenerateJWTCustomer(c *model.Customer) (string, error) {
 	claims := jwt.MapClaims{
 		"iss":   "popple",
 		"aud":   "customer",
@@ -89,7 +92,7 @@ func (a *AuthService) GenerateJWTCustomer(c *entity.Customer) (string, error) {
 	return token.SignedString([]byte(config.Env.AccessSecretKey))
 }
 
-func (a *AuthService) GenerateJWTAdmin(admin *entity.Admin) (string, error) {
+func (a *authService) GenerateJWTAdmin(admin *model.Admin) (string, error) {
 	claims := jwt.MapClaims{
 		"iss":   "popple",
 		"aud":   "admin",
@@ -101,103 +104,9 @@ func (a *AuthService) GenerateJWTAdmin(admin *entity.Admin) (string, error) {
 	return token.SignedString([]byte(config.Env.AccessSecretKey))
 }
 
-func (a *AuthService) CheckPassword(user *entity.User, password string) error {
+func (a *authService) CheckPassword(user *entity.User, password string) error {
 	if err := bcrypt.CompareHashAndPassword([]byte(password), []byte(user.Password)); err != nil {
 		return fmt.Errorf("password is incorrect: %s, %v", err.Error(), objects.ErrAuthorization)
 	}
-	return nil
-}
-
-type AdminService struct {
-	customerRepository *repository.CustomerRepository
-	adminRepository    *repository.AdminRepository
-}
-
-func NewAdminService(customerRepo *repository.CustomerRepository, adminRepo *repository.AdminRepository) *AdminService {
-	return &AdminService{
-		customerRepository: customerRepo,
-		adminRepository:    adminRepo,
-	}
-}
-
-func (a *AdminService) GetCustomerByID(ctx context.Context, id int) (*entity.Customer, error) {
-	customerModel, err := a.customerRepository.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	var customer entity.Customer
-	customer.ID = int(customerModel.ID)
-	customer.Name = customerModel.Name
-	customer.Password = customerModel.Password
-	customer.Email = customerModel.Email
-	customer.WordpressURL = customerModel.WordpressURL
-	customer.FacebookToken = fromNullString(customerModel.FacebookToken)
-	customer.StartDate = FromNullableTime(customerModel.StartDate)
-	customer.InstagramID = fromNullString(customerModel.InstagramID)
-	customer.InstagramName = fromNullString(customerModel.InstagramName)
-	customer.DeleteHashFlag = customerModel.DeleteHashFlag
-	return &customer, nil
-}
-
-func (a *AdminService) FindAll(ctx context.Context) ([]entity.Admin, error) {
-	modelList, err := a.adminRepository.FindAll(ctx)
-	if err != nil {
-		return nil, err
-	}
-	admins := make([]entity.Admin, len(modelList))
-	for i, m := range modelList {
-		admins[i] = entity.Admin{
-			ID:       m.ID,
-			Name:     m.Name,
-			Password: m.Password,
-			Email:    m.Email,
-		}
-	}
-	return admins, nil
-}
-
-func (a *AdminService) FindByEmail(ctx context.Context, email string) (*entity.Admin, error) {
-	m, err := a.adminRepository.FindByEmail(ctx, email)
-	if err != nil {
-		return nil, err
-	}
-	return &entity.Admin{
-		ID:       m.ID,
-		Name:     m.Name,
-		Password: m.Password,
-		Email:    m.Email,
-	}, nil
-}
-
-func (a *AdminService) FindByID(ctx context.Context, id int) (*entity.Admin, error) {
-	m, err := a.adminRepository.FindById(ctx, uint64(id))
-	if err != nil {
-		return nil, err
-	}
-	return &entity.Admin{
-		ID:       m.ID,
-		Name:     m.Name,
-		Password: m.Password,
-		Email:    m.Email,
-	}, nil
-}
-
-func (a *AdminService) CreateAdmin(ctx context.Context, admin *entity.Admin) error {
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(admin.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	adminModel := model.Admin{
-		Name:     admin.Name,
-		Email:    admin.Email,
-		Password: string(passwordHash),
-	}
-	if err := a.adminRepository.Save(ctx, &adminModel); err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return objects.ErrDuplicateEmail
-		}
-		return err
-	}
-	admin.ID = adminModel.ID
 	return nil
 }

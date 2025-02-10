@@ -7,11 +7,12 @@ import (
 )
 
 type BatchUsecase struct {
-	customerUsecase *CustomerUsecase
-	slack           *service.SlackService
+	customerService service.CustomerService
+	customerUsecase CustomerUsecase
+	slack           service.SlackService
 }
 
-func NewBatchUsecase(customerUsecase *CustomerUsecase, slackService *service.SlackService) *BatchUsecase {
+func NewBatchUsecase(customerUsecase CustomerUsecase, slackService service.SlackService) *BatchUsecase {
 	return &BatchUsecase{
 		customerUsecase: customerUsecase,
 		slack:           slackService,
@@ -19,7 +20,7 @@ func NewBatchUsecase(customerUsecase *CustomerUsecase, slackService *service.Sla
 }
 
 func (b *BatchUsecase) Execute(ctx context.Context) error {
-	customers, err := b.customerUsecase.FindAll(ctx)
+	customers, err := b.customerService.FindAuthCustomers(ctx)
 	if err != nil {
 		return err
 	}

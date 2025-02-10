@@ -8,6 +8,7 @@ import (
 	"github.com/IkezawaYuki/popple/config"
 	"github.com/IkezawaYuki/popple/internal/domain/entity"
 	"github.com/IkezawaYuki/popple/internal/infrastructure"
+	"github.com/IkezawaYuki/popple/internal/usecase/dto/exres"
 )
 
 type WordpressRestAPI struct {
@@ -22,21 +23,17 @@ func NewWordpressRestAPI(httpClient *infrastructure.HttpClient) *WordpressRestAP
 
 const wpPostUrl = "https://%s/wp-json/wp/v2/posts"
 
-type CreatePostResponse struct {
-	Link string `json:"link"`
-}
-
-func (w *WordpressRestAPI) CreatePosts(ctx context.Context, wordpressURL string, instaDetail *entity.InstagramPost, wpMedia []*entity.WordpressMedia) (string, error) {
-	posts := entity.NewWordpressPosts(instaDetail, wpMedia)
+func (w *WordpressRestAPI) CreatePost(ctx context.Context, wordpressURL string, instaDetail entity.InstagramPost, wpMedia []*entity.WordpressMedia) (*exres.CreatePostResponse, error) {
+	posts := entity.NewWordpressPost(instaDetail, wpMedia)
 	resp, err := w.httpClient.PostRequest(ctx, fmt.Sprintf(wpPostUrl, wordpressURL), posts, BasicAuthHeader())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	var response CreatePostResponse
+	var response exres.CreatePostResponse
 	if err := json.Unmarshal(resp, &response); err != nil {
-		return "", err
+		return nil, err
 	}
-	return response.Link, nil
+	return &response, nil
 }
 
 func (w *WordpressRestAPI) UploadFiles(ctx context.Context, wordpressURL string, pathList []string) ([]*entity.WordpressMedia, error) {

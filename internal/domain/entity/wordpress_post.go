@@ -18,7 +18,7 @@ type WordpressMedia struct {
 	MediaType string `json:"media_type"`
 }
 
-func NewWordpressPosts(instaDetail *InstagramPost, wpMedia []*WordpressMedia) WordpressPost {
+func NewWordpressPost(instaDetail InstagramPost, wpMedia []*WordpressMedia) WordpressPost {
 	wordpressPosts := WordpressPost{}
 	wordpressPosts.Title = instaDetail.Title()
 	wordpressPosts.FeaturedMedia = wpMedia[0].ID
@@ -33,7 +33,7 @@ func NewWordpressPosts(instaDetail *InstagramPost, wpMedia []*WordpressMedia) Wo
 	return wordpressPosts
 }
 
-func getCarousel(instaDetail *InstagramPost, wpMedia []*WordpressMedia) string {
+func getCarousel(instaDetail InstagramPost, wpMedia []*WordpressMedia) string {
 	sb := strings.Builder{}
 	sb.WriteString("<div class='a-root-wordpress-instagram-slider'>")
 	for _, media := range wpMedia {

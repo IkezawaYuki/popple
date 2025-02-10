@@ -2,83 +2,47 @@ package service
 
 import (
 	"context"
-	"errors"
-	"github.com/IkezawaYuki/popple/internal/domain/entity"
 	"github.com/IkezawaYuki/popple/internal/domain/model"
 	"github.com/IkezawaYuki/popple/internal/repository"
-	"gorm.io/gorm"
 )
 
-type PostService struct {
-	postRepo *repository.PostRepository
+type postService struct {
+	postRepo repository.PostRepository
 }
 
-func NewPostService(postRepo *repository.PostRepository) *PostService {
-	return &PostService{
+type PostService interface {
+	IsLinked(ctx context.Context, instagramMediaID string) (bool, error)
+	Create(ctx context.Context, post *model.Post) error
+	Update(ctx context.Context, post *model.Post) error
+	FindByCustomerID(ctx context.Context, customerID int) ([]*model.Post, error)
+}
+
+func NewPostService(postRepo repository.PostRepository) PostService {
+	return &postService{
 		postRepo: postRepo,
 	}
 }
 
-func (s *PostService) IsLinked(ctx context.Context, instagramMediaID string) (bool, error) {
-	_, err := s.postRepo.FindByInstagramMediaID(ctx, instagramMediaID)
+func (s *postService) IsLinked(ctx context.Context, instagramMediaID string) (bool, error) {
+	posts, err := s.postRepo.Get(ctx, &repository.PostFilter{
+		InstagramMediaID: &instagramMediaID,
+	})
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, nil
-		}
 		return false, err
 	}
-	return true, nil
+	return len(posts) > 0, nil
 }
 
-func (s *PostService) Create(ctx context.Context, post *entity.Post) error {
-	m := model.Post{}
-	m.CustomerID = post.CustomerID
-	m.InstagramMediaID = post.InstagramMediaID
-	return s.postRepo.Save(ctx, &m)
+func (s *postService) Create(ctx context.Context, post *model.Post) error {
+	return s.postRepo.Save(ctx, post)
 }
 
-func (s *PostService) SaveInstagramPost(ctx context.Context, customerID int, post *entity.InstagramPost) (*entity.Post, error) {
-	m := model.Post{}
-	m.CustomerID = customerID
-	m.InstagramMediaID = post.ID
-	m.InstagramLink = post.MediaURL
-	err := s.postRepo.Save(ctx, &m)
-	if err != nil {
-		return nil, err
-	}
-	return &entity.Post{
-		ID:               int(m.ID),
-		CustomerID:       m.CustomerID,
-		InstagramMediaID: m.InstagramMediaID,
-		CreatedAt:        m.CreatedAt,
-	}, nil
+func (s *postService) Update(ctx context.Context, post *model.Post) error {
+	return s.postRepo.Save(ctx, post)
 }
 
-func (s *PostService) SaveWordpressPost(ctx context.Context, post *entity.Post) error {
-	m, err := s.postRepo.FindByInstagramMediaID(ctx, post.InstagramMediaID)
-	if err != nil {
-		return err
-	}
-	m.WordpressLink.String = *post.WordpressLink
-	return s.postRepo.Save(ctx, m)
-}
-
-func (s *PostService) FindByCustomerID(ctx context.Context, customerID int) ([]entity.Post, error) {
-	posts, err := s.postRepo.FindByCustomerID(ctx, customerID)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]entity.Post, len(posts))
-	for i, post := range posts {
-		result[i] = entity.Post{
-			ID:               int(post.ID),
-			CustomerID:       post.CustomerID,
-			InstagramMediaID: post.InstagramMediaID,
-			InstagramLink:    post.InstagramLink,
-			CreatedAt:        post.CreatedAt,
-			WordpressLink:    fromNullString(post.WordpressLink),
-			WordpressMediaID: fromNullString(post.WordpressMediaID),
-		}
-	}
-	return result, nil
+func (s *postService) FindByCustomerID(ctx context.Context, customerID int) ([]*model.Post, error) {
+	return s.postRepo.Get(ctx, &repository.PostFilter{
+		CustomerID: &customerID,
+	})
 }

@@ -22,29 +22,27 @@ func NewFileService(httpClient *infrastructure.HttpClient) *FileService {
 	}
 }
 
-func (f *FileService) DownloadMedias(ctx context.Context, customerID int, post *entity.InstagramPost) ([]string, error) {
+func (f *FileService) DownloadMediaFiles(ctx context.Context, customerID int, post entity.InstagramPost) ([]string, error) {
 	var fileList []string
-	if len(post.ChildrenContent) == 0 {
+	if len(post.Children.Data) == 0 {
 		mediaPath, err := f.DownloadMedia(ctx, customerID, post.MediaURL)
 		if err != nil {
 			return nil, err
 		}
 		fileList = append(fileList, mediaPath)
-	} else {
-		for _, child := range post.ChildrenContent {
-			mediaPath, err := f.DownloadMedia(ctx, customerID, child.MediaURL)
-			if err != nil {
-				return nil, err
-			}
-			fileList = append(fileList, mediaPath)
+		return fileList, nil
+	}
+	for _, child := range post.Children.Data {
+		mediaPath, err := f.DownloadMedia(ctx, customerID, child.MediaURL)
+		if err != nil {
+			return nil, err
 		}
+		fileList = append(fileList, mediaPath)
 	}
 	return fileList, nil
 }
 
 func (f *FileService) DownloadMedia(ctx context.Context, customerID int, mediaUrl string) (string, error) {
-	fmt.Println("DownloadMedia is invoked")
-	fmt.Println(mediaUrl)
 	req, err := http.NewRequestWithContext(ctx, "GET", mediaUrl, nil)
 	if err != nil {
 		return "", err
@@ -84,6 +82,6 @@ func (f *FileService) MakeTempDirectory(customerID int) error {
 	return nil
 }
 
-func (f *FileService) RemoveTempDirectory() error {
-	return os.RemoveAll(tempDirectory)
+func (f *FileService) RemoveTempDirectory(customerID int) error {
+	return os.RemoveAll(fmt.Sprintf(tempDirectory, customerID))
 }

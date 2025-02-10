@@ -3,18 +3,17 @@ package entity
 import (
 	"net/url"
 	"strings"
-	"time"
 )
 
-type InstagramPost struct {
-	ID              string
-	Caption         string
-	MediaType       string
-	MediaURL        string
-	Timestamp       time.Time
-	ChildrenID      []string
-	ChildrenContent []ChildMedia
-}
+//type InstagramPost struct {
+//	ID              string
+//	Caption         string
+//	MediaType       string
+//	MediaURL        string
+//	Timestamp       time.Time
+//	ChildrenID      []string
+//	ChildrenContent []ChildMedia
+//}
 
 type ChildMedia struct {
 	ID        string
@@ -40,4 +39,29 @@ func (i *ChildMedia) FileName() (string, error) {
 		return "", err
 	}
 	return parsedURL.Path, nil
+}
+
+type InstagramPosts struct {
+	ID    string `json:"id"`
+	Media struct {
+		Data []InstagramPost `json:"data"`
+	} `json:"media"`
+}
+
+type InstagramPost struct {
+	ID        string                `json:"id"`
+	Permalink string                `json:"permalink"`
+	Caption   string                `json:"caption,omitempty"`
+	Timestamp string                `json:"timestamp"`
+	MediaType string                `json:"media_type"`
+	MediaURL  string                `json:"media_url"`
+	Children  InstagramPostChildren `json:"children"`
+}
+
+type InstagramPostChildren struct {
+	Data []struct {
+		MediaType string `json:"media_type"`
+		MediaURL  string `json:"media_url"`
+		ID        string `json:"id"`
+	} `json:"data"`
 }

@@ -4,6 +4,8 @@ import (
 	"github.com/IkezawaYuki/popple/internal/domain/entity"
 	"github.com/IkezawaYuki/popple/internal/presenter"
 	"github.com/IkezawaYuki/popple/internal/usecase"
+	"github.com/IkezawaYuki/popple/internal/usecase/dto/req"
+	"github.com/IkezawaYuki/popple/internal/usecase/dto/res"
 	"github.com/labstack/echo/v4"
 	"log/slog"
 	"net/http"
@@ -36,16 +38,28 @@ func NewAdminController(adminUsecase *usecase.AdminUsecase, presenter2 *presente
 //	@Router			/admin/register/customer [post]
 func (a *AdminController) RegisterCustomer(c echo.Context) error {
 	slog.Info("RegisterCustomer is invoked")
-	var customer entity.Customer
-	customer.Name = c.FormValue("name")
-	customer.Password = c.FormValue("password")
-	customer.Email = c.FormValue("email")
-	customer.WordpressURL = c.FormValue("wordpressUrl")
-	if customer.Name == "" || customer.Password == "" || customer.Email == "" || customer.WordpressURL == "" {
-		return c.JSON(http.StatusBadRequest, "invalid value")
+	var registerCustomer req.RegisterCustomer
+	if err := c.Bind(&registerCustomer); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
-	err := a.adminUsecase.RegisterCustomer(c.Request().Context(), &customer)
-	return c.JSON(a.presenter.Generate(err, customer))
+	customer := &entity.Customer{
+		ID:             0,
+		Name:           "",
+		Password:       "",
+		Email:          "",
+		WordpressURL:   "",
+		FacebookToken:  nil,
+		StartDate:      nil,
+		InstagramID:    nil,
+		InstagramName:  nil,
+		DeleteHashFlag: 0,
+	}
+
+	resp, err := a.adminUsecase.RegisterCustomer(c.Request().Context(), customer)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+	response := res.RegisterCustomer{}
 }
 
 // Login godoc

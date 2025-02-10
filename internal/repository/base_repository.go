@@ -1,23 +1,23 @@
 package repository
 
-import "gorm.io/gorm"
+import (
+	"github.com/IkezawaYuki/popple/internal/infrastructure"
+)
 
-type BaseRepository struct {
-	db *gorm.DB
+type BaseRepository interface {
+	Begin() infrastructure.Transaction
 }
 
-func NewBaseRepository(db *gorm.DB) *BaseRepository {
-	return &BaseRepository{db: db}
+type baseRepository struct {
+	dbDriver infrastructure.DBDriver
 }
 
-func (b *BaseRepository) Begin() *gorm.DB {
-	return b.db.Begin()
+func NewBaseRepository(dbDriver infrastructure.DBDriver) BaseRepository {
+	return &baseRepository{
+		dbDriver: dbDriver,
+	}
 }
 
-func (b *BaseRepository) Commit(tx *gorm.DB) error {
-	return tx.Commit().Error
-}
-
-func (b *BaseRepository) Rollback(tx *gorm.DB) error {
-	return tx.Rollback().Error
+func (b *baseRepository) Begin() infrastructure.Transaction {
+	return b.dbDriver.Begin()
 }

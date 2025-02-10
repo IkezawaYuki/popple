@@ -3,35 +3,55 @@ package repository
 import (
 	"context"
 	"github.com/IkezawaYuki/popple/internal/domain/model"
-	"gorm.io/gorm"
+	"github.com/IkezawaYuki/popple/internal/infrastructure"
 )
 
-type AdminRepository struct {
-	db *gorm.DB
+type AdminRepository interface {
+	Get(ctx context.Context, f *AdminFilter) ([]*model.Admin, error)
+	First(ctx context.Context, f *AdminFilter) (*model.Admin, error)
+	GetTx(ctx context.Context, f *AdminFilter, tx infrastructure.Transaction) ([]*model.Admin, error)
+	FirstTx(ctx context.Context, f *AdminFilter, tx infrastructure.Transaction) (*model.Admin, error)
+	Save(ctx context.Context, admin *model.Admin) error
 }
 
-func NewAdminRepository(db *gorm.DB) *AdminRepository {
-	return &AdminRepository{db: db}
+type adminRepository struct {
+	dbDriver infrastructure.DBDriver
 }
 
-func (a *AdminRepository) FindAll(ctx context.Context) ([]model.Admin, error) {
-	var admins []model.Admin
-	err := a.db.WithContext(ctx).Find(&admins).Error
+func NewAdminRepository(dbDriver infrastructure.DBDriver) AdminRepository {
+	return &adminRepository{dbDriver: dbDriver}
+}
+
+func (a *adminRepository) Get(ctx context.Context, f *AdminFilter) ([]*model.Admin, error) {
+	var admins []*model.Admin
+	err := a.dbDriver.Find(ctx, &admins, f)
+	if err != nil {
+		return nil, err
+	}
 	return admins, err
 }
 
-func (a *AdminRepository) FindById(ctx context.Context, id uint64) (*model.Admin, error) {
+func (a *adminRepository) First(ctx context.Context, f *AdminFilter) (*model.Admin, error) {
 	var admin model.Admin
-	err := a.db.WithContext(ctx).First(&admin, id).Error
+	err := a.dbDriver.First(ctx, &admin, f)
 	return &admin, err
 }
 
-func (a *AdminRepository) FindByEmail(ctx context.Context, email string) (*model.Admin, error) {
+func (a *adminRepository) GetTx(ctx context.Context, f *AdminFilter, tx infrastructure.Transaction) ([]*model.Admin, error) {
+	var admins []*model.Admin
+	err := a.dbDriver.FindTx(ctx, &admins, f, tx)
+	if err != nil {
+		return nil, err
+	}
+	return admins, err
+}
+
+func (a *adminRepository) FirstTx(ctx context.Context, f *AdminFilter, tx infrastructure.Transaction) (*model.Admin, error) {
 	var admin model.Admin
-	err := a.db.WithContext(ctx).First(&admin, "email = ?", email).Error
+	err := a.dbDriver.FirstTx(ctx, &admin, f, tx)
 	return &admin, err
 }
 
-func (a *AdminRepository) Save(ctx context.Context, admin *model.Admin) error {
-	return a.db.WithContext(ctx).Save(admin).Error
+func (a *adminRepository) Save(ctx context.Context, admin *model.Admin) error {
+	return a.dbDriver.Save(ctx, admin)
 }
