@@ -6,19 +6,24 @@ import (
 	"time"
 )
 
-type RedisClient struct {
+type redisRepository struct {
 	client *redis.Client
 }
 
-func NewRedisClient(client *redis.Client) *RedisClient {
-	return &RedisClient{client: client}
+type RedisRepository interface {
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
+	Get(ctx context.Context, key string) (string, error)
 }
 
-func (r *RedisClient) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+func NewRedisRepository(client *redis.Client) RedisRepository {
+	return &redisRepository{client: client}
+}
+
+func (r *redisRepository) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	_, err := r.client.Set(ctx, key, value, expiration).Result()
 	return err
 }
 
-func (r *RedisClient) Get(ctx context.Context, key string) (string, error) {
+func (r *redisRepository) Get(ctx context.Context, key string) (string, error) {
 	return r.client.Get(ctx, key).Result()
 }

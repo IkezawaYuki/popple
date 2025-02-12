@@ -109,7 +109,7 @@ func TestMain(m *testing.M) {
 	customerRepo := repository.NewCustomerRepository(db)
 	adminRepo := repository.NewAdminRepository(db)
 	postRepo := repository.NewPostRepository(db)
-	redisRepo := repository.NewRedisClient(client)
+	redisRepo := repository.NewRedisRepository(client)
 	httpClient := infrastructure.NewHttpClient()
 
 	adminSrv = NewAdminService(customerRepo, adminRepo)

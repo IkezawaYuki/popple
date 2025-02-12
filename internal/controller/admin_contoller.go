@@ -13,11 +13,11 @@ import (
 )
 
 type AdminController struct {
-	adminUsecase *usecase.AdminUsecase
+	adminUsecase usecase.AdminUsecase
 	presenter    *presenter.Presenter
 }
 
-func NewAdminController(adminUsecase *usecase.AdminUsecase, presenter2 *presenter.Presenter) AdminController {
+func NewAdminController(adminUsecase usecase.AdminUsecase, presenter2 *presenter.Presenter) AdminController {
 	return AdminController{
 		adminUsecase: adminUsecase,
 		presenter:    presenter2,

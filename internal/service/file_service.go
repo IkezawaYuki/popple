@@ -12,20 +12,26 @@ import (
 	"strings"
 )
 
-type FileService struct {
+type fileService struct {
 	httpClient *infrastructure.HttpClient
 }
 
-func NewFileService(httpClient *infrastructure.HttpClient) *FileService {
-	return &FileService{
+type FileService interface {
+	DownloadMediaFiles(ctx context.Context, customerID int, post entity.InstagramPost) ([]string, error)
+	MakeTempDirectory(customerID int) error
+	RemoveTempDirectory(customerID int) error
+}
+
+func NewFileService(httpClient *infrastructure.HttpClient) FileService {
+	return &fileService{
 		httpClient: httpClient,
 	}
 }
 
-func (f *FileService) DownloadMediaFiles(ctx context.Context, customerID int, post entity.InstagramPost) ([]string, error) {
+func (f *fileService) DownloadMediaFiles(ctx context.Context, customerID int, post entity.InstagramPost) ([]string, error) {
 	var fileList []string
 	if len(post.Children.Data) == 0 {
-		mediaPath, err := f.DownloadMedia(ctx, customerID, post.MediaURL)
+		mediaPath, err := f.downloadMedia(ctx, customerID, post.MediaURL)
 		if err != nil {
 			return nil, err
 		}
@@ -33,7 +39,7 @@ func (f *FileService) DownloadMediaFiles(ctx context.Context, customerID int, po
 		return fileList, nil
 	}
 	for _, child := range post.Children.Data {
-		mediaPath, err := f.DownloadMedia(ctx, customerID, child.MediaURL)
+		mediaPath, err := f.downloadMedia(ctx, customerID, child.MediaURL)
 		if err != nil {
 			return nil, err
 		}
@@ -42,7 +48,7 @@ func (f *FileService) DownloadMediaFiles(ctx context.Context, customerID int, po
 	return fileList, nil
 }
 
-func (f *FileService) DownloadMedia(ctx context.Context, customerID int, mediaUrl string) (string, error) {
+func (f *fileService) downloadMedia(ctx context.Context, customerID int, mediaUrl string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", mediaUrl, nil)
 	if err != nil {
 		return "", err
@@ -71,7 +77,7 @@ func (f *FileService) DownloadMedia(ctx context.Context, customerID int, mediaUr
 
 const tempDirectory = "./tmp_%d"
 
-func (f *FileService) MakeTempDirectory(customerID int) error {
+func (f *fileService) MakeTempDirectory(customerID int) error {
 	err := os.Mkdir(fmt.Sprintf(tempDirectory, customerID), 0777)
 	if err != nil {
 		if os.IsExist(err) {
@@ -82,6 +88,6 @@ func (f *FileService) MakeTempDirectory(customerID int) error {
 	return nil
 }
 
-func (f *FileService) RemoveTempDirectory(customerID int) error {
+func (f *fileService) RemoveTempDirectory(customerID int) error {
 	return os.RemoveAll(fmt.Sprintf(tempDirectory, customerID))
 }

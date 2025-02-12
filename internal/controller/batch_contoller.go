@@ -26,6 +26,6 @@ func NewBatchController(batchUsecase *usecase.BatchUsecase, presenter2 *presente
 //	@Security		Token
 //	@Router			/badge/execute [get]
 func (ctr *BatchController) Execute(c echo.Context) error {
-	err := ctr.batchUsecase.Execute(c.Request().Context())
-	return c.JSON(ctr.httpPresenter.Generate(err, "ok"))
+	resp, err := ctr.batchUsecase.Execute(c.Request().Context())
+	return c.JSON(ctr.httpPresenter.Generate(err, resp))
 }

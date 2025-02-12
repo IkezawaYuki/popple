@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"github.com/IkezawaYuki/popple/internal/service"
+	"github.com/IkezawaYuki/popple/internal/usecase/dto/res"
 	"sync"
 )
 
@@ -19,10 +20,10 @@ func NewBatchUsecase(customerUsecase CustomerUsecase, slackService service.Slack
 	}
 }
 
-func (b *BatchUsecase) Execute(ctx context.Context) error {
+func (b *BatchUsecase) Execute(ctx context.Context) (*res.Message, error) {
 	customers, err := b.customerService.FindAuthCustomers(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var wg sync.WaitGroup
@@ -40,7 +41,7 @@ func (b *BatchUsecase) Execute(ctx context.Context) error {
 			defer func() { <-sem }() // 処理が完了したらセマフォを解放
 
 			// Fetch Instagram Media
-			if err := b.customerUsecase.FetchAndPost(ctx, customerID); err != nil {
+			if _, err := b.customerUsecase.FetchAndPost(ctx, customerID); err != nil {
 				return
 			}
 
@@ -50,5 +51,5 @@ func (b *BatchUsecase) Execute(ctx context.Context) error {
 	// Wait for all goroutines to finish
 	wg.Wait()
 
-	return nil
+	return &res.Message{Message: "ok"}, nil
 }

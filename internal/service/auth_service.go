@@ -15,8 +15,8 @@ import (
 )
 
 type authService struct {
-	customerRepository *repository.CustomerRepository
-	redisClient        *repository.RedisClient
+	customerRepository repository.CustomerRepository
+	redisClient        repository.RedisRepository
 }
 
 type AuthService interface {
@@ -25,7 +25,7 @@ type AuthService interface {
 	GenerateJWTCustomer(c *model.Customer) (string, error)
 }
 
-func NewAuthService(customerRepo *repository.CustomerRepository, redisClient *repository.RedisClient) AuthService {
+func NewAuthService(customerRepo repository.CustomerRepository, redisClient repository.RedisRepository) AuthService {
 	return &authService{
 		customerRepository: customerRepo,
 		redisClient:        redisClient,

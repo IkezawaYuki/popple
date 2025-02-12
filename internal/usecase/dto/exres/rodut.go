@@ -9,3 +9,7 @@ type UploadMediaResponse struct {
 	ID        string `json:"id"`
 	SourceUrl string `json:"source_url"`
 }
+
+type TitleResponse struct {
+	Title string `json:"title"`
+}

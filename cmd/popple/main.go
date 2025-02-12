@@ -29,6 +29,8 @@ func main() {
 	defer func() {
 		_ = redisCli.Close()
 	}()
+
+	dbDriver := infrastructure.NewDBDriver(db)
 	customerController := di.NewCustomerController(db, redisCli)
 	adminController := di.NewAdminController(db, redisCli)
 	authService := di.NewAuthService(db, redisCli)

@@ -10,11 +10,11 @@ import (
 )
 
 type CustomerController struct {
-	customerUsecase *usecase.CustomerUsecase
+	customerUsecase usecase.CustomerUsecase
 	presenter       *presenter.Presenter
 }
 
-func NewCustomerController(customerUsecase *usecase.CustomerUsecase, presenter2 *presenter.Presenter) CustomerController {
+func NewCustomerController(customerUsecase usecase.CustomerUsecase, presenter2 *presenter.Presenter) CustomerController {
 	return CustomerController{
 		customerUsecase: customerUsecase,
 		presenter:       presenter2,
@@ -90,6 +90,6 @@ func (ctr *CustomerController) FetchAndPost(c echo.Context) error {
 	slog.Info("FetchAndPost is invoked")
 	customerID := c.Get("customer_id").(int)
 	ctx := c.Request().Context()
-	err := ctr.customerUsecase.FetchAndPost(ctx, customerID)
-	return c.JSON(ctr.presenter.Generate(err, nil))
+	resp, err := ctr.customerUsecase.FetchAndPost(ctx, customerID)
+	return c.JSON(ctr.presenter.Generate(err, resp))
 }
