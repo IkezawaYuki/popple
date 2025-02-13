@@ -5,7 +5,6 @@ import (
 	"github.com/IkezawaYuki/popple/internal/presenter"
 	"github.com/IkezawaYuki/popple/internal/usecase"
 	"github.com/IkezawaYuki/popple/internal/usecase/dto/req"
-	"github.com/IkezawaYuki/popple/internal/usecase/dto/res"
 	"github.com/labstack/echo/v4"
 	"log/slog"
 	"net/http"
@@ -38,28 +37,16 @@ func NewAdminController(adminUsecase usecase.AdminUsecase, presenter2 *presenter
 //	@Router			/admin/register/customer [post]
 func (a *AdminController) RegisterCustomer(c echo.Context) error {
 	slog.Info("RegisterCustomer is invoked")
-	var registerCustomer req.RegisterCustomer
+	var registerCustomer req.CreateCustomerBody
 	if err := c.Bind(&registerCustomer); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
-	customer := &entity.Customer{
-		ID:             0,
-		Name:           "",
-		Password:       "",
-		Email:          "",
-		WordpressURL:   "",
-		FacebookToken:  nil,
-		StartDate:      nil,
-		InstagramID:    nil,
-		InstagramName:  nil,
-		DeleteHashFlag: 0,
-	}
 
-	resp, err := a.adminUsecase.RegisterCustomer(c.Request().Context(), customer)
+	resp, err := a.adminUsecase.RegisterCustomer(c.Request().Context(), registerCustomer)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
-	response := res.RegisterCustomer{}
+	return c.JSON(a.presenter.Generate(err, resp))
 }
 
 // Login godoc
@@ -91,7 +78,11 @@ func (a *AdminController) Login(c echo.Context) error {
 //	@Router			/admin/customers [get]
 func (a *AdminController) GetCustomers(c echo.Context) error {
 	slog.Info("GetCustomers is invoked")
-	customers, err := a.adminUsecase.GetCustomers(c.Request().Context())
+	var query req.CustomerQuery
+	if err := c.Bind(&query); err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	customers, err := a.adminUsecase.GetCustomers(c.Request().Context(), query)
 	return c.JSON(a.presenter.Generate(err, customers))
 }
 
@@ -123,15 +114,20 @@ func (a *AdminController) GetCustomer(c echo.Context) error {
 //	@Produce		json
 //	@Security		Token
 //	@Param			customerId		query	int	true	"Customer ID"
-//	@Router			/admin/customers/{customerId}/posts [get]
+//	@Router			/admin/customers/{customer_id}/posts [get]
 func (a *AdminController) GetPostsByCustomer(c echo.Context) error {
 	slog.Info("GetPostsByCustomer is invoked")
-	customerIdParam := c.Param("id")
+	customerIdParam := c.Param("customer_id")
 	customerId, err := strconv.Atoi(customerIdParam)
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
-	posts, err := a.adminUsecase.GetPostByCustomer(c.Request().Context(), customerId)
+	var query req.PostQuery
+	if err := c.Bind(&query); err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+
+	posts, err := a.adminUsecase.GetPosts(c.Request().Context(), customerId, query)
 	return c.JSON(a.presenter.Generate(err, posts))
 }
 
@@ -145,7 +141,11 @@ func (a *AdminController) GetPostsByCustomer(c echo.Context) error {
 //	@Router			/admin/admins [get]
 func (a *AdminController) GetAdmins(c echo.Context) error {
 	slog.Info("GetAdmins is invoked")
-	admins, err := a.adminUsecase.GetAdmins(c.Request().Context())
+	var query req.AdminQuery
+	if err := c.Bind(&query); err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	admins, err := a.adminUsecase.GetAdmins(c.Request().Context(), query)
 	return c.JSON(a.presenter.Generate(err, admins))
 }
 
@@ -178,10 +178,10 @@ func (a *AdminController) GetAdmin(c echo.Context) error {
 //	@Router			/admin/register/admin [post]
 func (a *AdminController) RegisterAdmin(c echo.Context) error {
 	slog.Info("RegisterAdmin is invoked")
-	var admin entity.Admin
-	admin.Name = c.FormValue("name")
-	admin.Password = c.FormValue("password")
-	admin.Email = c.FormValue("email")
-	err := a.adminUsecase.RegisterAdmin(c.Request().Context(), &admin)
-	return c.JSON(a.presenter.Generate(err, nil))
+	var admin req.CreateAdminBody
+	if err := c.Bind(&admin); err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	resp, err := a.adminUsecase.RegisterAdmin(c.Request().Context(), admin)
+	return c.JSON(a.presenter.Generate(err, resp))
 }

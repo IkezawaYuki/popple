@@ -20,6 +20,8 @@ type authService struct {
 }
 
 type AuthService interface {
+	IsCustomerIsLogin(tokenString string) (int, error)
+	IsAdminLogin(tokenString string) (int, error)
 	CheckPassword(user *entity.User, password string) error
 	GenerateJWTAdmin(admin *model.Admin) (string, error)
 	GenerateJWTCustomer(c *model.Customer) (string, error)

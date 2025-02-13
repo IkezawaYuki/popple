@@ -9,8 +9,9 @@ import (
 type Environment struct {
 	RedisAddr              string `envconfig:"REDIS_ADDR"`
 	DatabaseUser           string `envconfig:"DATABASE_USER"`
-	DatabasePass           string `envconfig:"DATABASE_PASS"`
-	DatabaseName           string `envconfig:"DATABASE_NAME"`
+	DatabasePort           string `envconfig:"DATABASE_PORT"`
+	DatabasePass           string `envconfig:"DATABASE_PASSWORD"`
+	DatabaseName           string `envconfig:"DATABASE_SCHEME"`
 	DatabaseHost           string `envconfig:"DATABASE_HOST"`
 	AccessSecretKey        string `envconfig:"ACCESS_SECRET_KEY"`
 	WordpressAdminEmail    string `envconfig:"WORDPRESS_ADMIN_EMAIL"`

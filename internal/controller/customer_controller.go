@@ -4,6 +4,7 @@ import (
 	"github.com/IkezawaYuki/popple/internal/domain/entity"
 	"github.com/IkezawaYuki/popple/internal/presenter"
 	"github.com/IkezawaYuki/popple/internal/usecase"
+	"github.com/IkezawaYuki/popple/internal/usecase/dto/req"
 	"github.com/labstack/echo/v4"
 	"log/slog"
 	"net/http"
@@ -72,8 +73,11 @@ func (ctr *CustomerController) GetCustomer(c echo.Context) error {
 func (ctr *CustomerController) GetPosts(c echo.Context) error {
 	slog.Info("GetPosts is invoked")
 	customerId := c.Get("customer_id").(int)
-	ctx := c.Request().Context()
-	posts, err := ctr.customerUsecase.GetPostsByCustomerID(ctx, customerId)
+	var query req.PostQuery
+	if err := c.Bind(&query); err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	posts, err := ctr.customerUsecase.GetPosts(c.Request().Context(), customerId, query)
 	return c.JSON(ctr.presenter.Generate(err, posts))
 }
 

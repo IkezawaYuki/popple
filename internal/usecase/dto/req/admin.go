@@ -1,7 +1,9 @@
 package req
 
 type AdminQuery struct {
-	PartialName string `query:"partial_name" binding:"required"`
+	Email       *string `query:"email"`
+	PartialName *string `query:"partial_name"`
+	Pagination
 }
 
 type CreateAdminBody struct {

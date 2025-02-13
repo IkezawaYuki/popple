@@ -24,6 +24,14 @@ type adminUsecase struct {
 }
 
 type AdminUsecase interface {
+	RegisterCustomer(ctx context.Context, body req.CreateCustomerBody) (resp *res.Customer, err error)
+	RegisterAdmin(ctx context.Context, body req.CreateAdminBody) (*res.Admin, error)
+	Login(ctx context.Context, user *entity.User) (string, error)
+	GetCustomers(ctx context.Context, query req.CustomerQuery) (*res.Customers, error)
+	GetCustomer(ctx context.Context, id int) (*res.Customer, error)
+	GetAdmin(ctx context.Context, id int) (*res.Admin, error)
+	GetAdmins(ctx context.Context, query req.AdminQuery) (*res.Admins, error)
+	GetPosts(ctx context.Context, customerID int, query req.PostQuery) (*res.Posts, error)
 }
 
 func NewAdminUsecase(
@@ -148,7 +156,7 @@ func (a *adminUsecase) GetCustomer(ctx context.Context, id int) (*res.Customer, 
 	return res.GetCustomer(customer), nil
 }
 
-func (a *adminUsecase) GetAdmins(ctx context.Context, query req.CustomerQuery) (*res.Admins, error) {
+func (a *adminUsecase) GetAdmins(ctx context.Context, query req.AdminQuery) (*res.Admins, error) {
 	f := &repository.AdminFilter{
 		Email:       query.Email,
 		PartialName: query.PartialName,
@@ -174,9 +182,9 @@ func (a *adminUsecase) GetAdmin(ctx context.Context, id int) (*res.Admin, error)
 	return res.GetAdmin(admin), nil
 }
 
-func (a *adminUsecase) GetPosts(ctx context.Context, query req.PostQuery) (*res.Posts, error) {
+func (a *adminUsecase) GetPosts(ctx context.Context, customerID int, query req.PostQuery) (*res.Posts, error) {
 	f := &repository.PostFilter{
-		CustomerID: query.CustomerID,
+		CustomerID: &customerID,
 		Limit:      query.Limit,
 		Offset:     query.Offset,
 	}
