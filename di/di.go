@@ -11,13 +11,15 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewAuthService(dbDriver infrastructure.DBDriver, redisCli *redis.Client) service.AuthService {
+func NewAuthService(db *gorm.DB, redisCli *redis.Client) service.AuthService {
+	dbDriver := infrastructure.NewDBDriver(db)
 	customerRepo := repository.NewCustomerRepository(dbDriver)
 	redisClient := repository.NewRedisRepository(redisCli)
 	return service.NewAuthService(customerRepo, redisClient)
 }
 
-func NewCustomerService(dbDriver infrastructure.DBDriver) service.CustomerService {
+func NewCustomerService(db *gorm.DB) service.CustomerService {
+	dbDriver := infrastructure.NewDBDriver(db)
 	customerRepo := repository.NewCustomerRepository(dbDriver)
 	return service.NewCustomerService(customerRepo)
 }
@@ -34,16 +36,18 @@ func NewAdminController(db *gorm.DB, redisCli *redis.Client) controller.AdminCon
 	baseRepo := repository.NewBaseRepository(dbDriver)
 	customerRepo := repository.NewCustomerRepository(dbDriver)
 	adminRepo := repository.NewAdminRepository(dbDriver)
+	postRepo := repository.NewPostRepository(dbDriver)
 	redisClient := repository.NewRedisRepository(redisCli)
 	pre := presenter.NewPresenter()
 	customerService := service.NewCustomerService(customerRepo)
 	authService := service.NewAuthService(customerRepo, redisClient)
 	adminService := service.NewAdminService(customerRepo, adminRepo)
-	adminUsecase := usecase.NewAdminUsecase(baseRepo, adminService, authService, customerService)
+	adminUsecase := usecase.NewAdminUsecase(baseRepo, adminRepo, customerRepo, postRepo, adminService, authService, customerService)
 	return controller.NewAdminController(adminUsecase, pre)
 }
 
-func NewBatchController(dbDriver infrastructure.DBDriver, redisCli *redis.Client) controller.BatchController {
+func NewBatchController(db *gorm.DB, redisCli *redis.Client) controller.BatchController {
+	dbDriver := infrastructure.NewDBDriver(db)
 	pre := presenter.NewPresenter()
 	httpClient := infrastructure.NewHttpClient()
 	slack := service.NewSlackService(httpClient)
