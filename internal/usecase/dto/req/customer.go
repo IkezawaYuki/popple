@@ -5,6 +5,8 @@ import "time"
 type CustomerQuery struct {
 	IsFacebookToken *bool   `query:"isFacebookToken"`
 	PartialName     *string `query:"partialName"`
+	FacebookToken   *string `query:"facebookToken"`
+	Email           *string `query:"email"`
 	Pagination
 }
 

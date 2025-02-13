@@ -12,6 +12,7 @@ type AdminRepository interface {
 	GetTx(ctx context.Context, f *AdminFilter, tx infrastructure.Transaction) ([]*model.Admin, error)
 	FirstTx(ctx context.Context, f *AdminFilter, tx infrastructure.Transaction) (*model.Admin, error)
 	Save(ctx context.Context, admin *model.Admin) error
+	Count(ctx context.Context, f *AdminFilter) (int, error)
 }
 
 type adminRepository struct {
@@ -54,4 +55,12 @@ func (a *adminRepository) FirstTx(ctx context.Context, f *AdminFilter, tx infras
 
 func (a *adminRepository) Save(ctx context.Context, admin *model.Admin) error {
 	return a.dbDriver.Save(ctx, admin)
+}
+
+func (a *adminRepository) Count(ctx context.Context, f *AdminFilter) (int, error) {
+	count, err := a.dbDriver.Count(ctx, &model.Admin{}, f)
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
 }

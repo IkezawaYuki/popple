@@ -16,7 +16,7 @@ type CustomerUsecase interface {
 	FetchAndPost(ctx context.Context, customerID int) (*res.Message, error)
 	Login(ctx context.Context, user *entity.User) (string, error)
 	GetCustomer(ctx context.Context, customerID int) (*res.Customer, error)
-	GetPosts(ctx context.Context, customerID int, req req.Post) (*res.Posts, error)
+	GetPosts(ctx context.Context, customerID int, req req.PostQuery) (*res.Posts, error)
 }
 
 type customerUsecase struct {
@@ -157,7 +157,7 @@ func (c *customerUsecase) FetchAndPost(ctx context.Context, customerID int) (*re
 	return &res.Message{Message: "ok"}, nil
 }
 
-func (c *customerUsecase) GetPosts(ctx context.Context, customerID int, req req.Post) (*res.Posts, error) {
+func (c *customerUsecase) GetPosts(ctx context.Context, customerID int, req req.PostQuery) (*res.Posts, error) {
 	f := &repository.PostFilter{
 		CustomerID: &customerID,
 		Limit:      req.Limit,

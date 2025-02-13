@@ -1,6 +1,6 @@
 package req
 
-type Post struct {
+type PostQuery struct {
 	ID         *int `form:"id"`
 	CustomerID *int `form:"customer_id"`
 	Pagination

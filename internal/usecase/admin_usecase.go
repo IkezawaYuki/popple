@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"github.com/IkezawaYuki/popple/internal/domain/entity"
 	"github.com/IkezawaYuki/popple/internal/domain/model"
 	"github.com/IkezawaYuki/popple/internal/domain/objects"
@@ -17,6 +16,7 @@ type adminUsecase struct {
 	baseRepository  repository.BaseRepository
 	adminRepo       repository.AdminRepository
 	customerRepo    repository.CustomerRepository
+	postRepo        repository.PostRepository
 	adminService    service.AdminService
 	authService     service.AuthService
 	customerService service.CustomerService
@@ -30,6 +30,7 @@ func NewAdminUsecase(
 	baseRepo repository.BaseRepository,
 	adminRepo repository.AdminRepository,
 	customerRepo repository.CustomerRepository,
+	postRepo repository.PostRepository,
 	adminSrv service.AdminService,
 	authSrv service.AuthService,
 	customerService service.CustomerService,
@@ -38,6 +39,7 @@ func NewAdminUsecase(
 		baseRepository:  baseRepo,
 		adminRepo:       adminRepo,
 		customerRepo:    customerRepo,
+		postRepo:        postRepo,
 		adminService:    adminSrv,
 		authService:     authSrv,
 		customerService: customerService,
@@ -84,7 +86,27 @@ func (a *adminUsecase) RegisterCustomer(ctx context.Context, body req.CreateCust
 }
 
 func (a *adminUsecase) RegisterAdmin(ctx context.Context, body req.CreateAdminBody) (*res.Admin, error) {
-
+	used, err := a.adminService.IsUsedEmailAddress(ctx, body.Email)
+	if err != nil {
+		return nil, err
+	}
+	if used {
+		return nil, objects.ErrEmailUsed
+	}
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	admin := &model.Admin{
+		Name:     body.Name,
+		Email:    body.Email,
+		Password: string(passwordHash),
+	}
+	err = a.adminRepo.Save(ctx, admin)
+	if err != nil {
+		return nil, err
+	}
+	return res.GetAdmin(admin), nil
 }
 
 func (a *adminUsecase) Login(ctx context.Context, user *entity.User) (string, error) {
@@ -98,22 +120,74 @@ func (a *adminUsecase) Login(ctx context.Context, user *entity.User) (string, er
 	return a.authService.GenerateJWTAdmin(customer)
 }
 
-func (a *adminUsecase) GetCustomers(ctx context.Context) ([]*model.Customer, error) {
-	return a.customerService.FindAll(ctx)
+func (a *adminUsecase) GetCustomers(ctx context.Context, query req.CustomerQuery) (*res.Customers, error) {
+	f := &repository.CustomerFilter{
+		Email:           query.Email,
+		PartialName:     query.PartialName,
+		FacebookToken:   query.FacebookToken,
+		IsFacebookToken: query.IsFacebookToken,
+		Limit:           query.Limit,
+		Offset:          query.Offset,
+	}
+	customers, err := a.customerRepo.Get(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	count, err := a.customerRepo.Count(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	return res.GetCustomers(customers, count), nil
 }
 
-func (a *adminUsecase) GetCustomer(ctx context.Context, id int) (*model.Customer, error) {
-	return a.customerService.FindByID(ctx, id)
+func (a *adminUsecase) GetCustomer(ctx context.Context, id int) (*res.Customer, error) {
+	customer, err := a.customerService.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return res.GetCustomer(customer), nil
 }
 
-func (a *adminUsecase) GetAdmins(ctx context.Context) ([]*model.Admin, error) {
-	return a.adminService.FindAll(ctx)
+func (a *adminUsecase) GetAdmins(ctx context.Context, query req.CustomerQuery) (*res.Admins, error) {
+	f := &repository.AdminFilter{
+		Email:       query.Email,
+		PartialName: query.PartialName,
+		Limit:       query.Limit,
+		Offset:      query.Offset,
+	}
+	admins, err := a.adminRepo.Get(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	count, err := a.adminRepo.Count(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	return res.GetAdmins(admins, count), nil
 }
 
-func (a *adminUsecase) GetAdmin(ctx context.Context, id int) (*model.Admin, error) {
-	return a.adminService.FindByID(ctx, id)
+func (a *adminUsecase) GetAdmin(ctx context.Context, id int) (*res.Admin, error) {
+	admin, err := a.adminService.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return res.GetAdmin(admin), nil
 }
 
-func (a *adminUsecase) GetPostByCustomer(ctx context.Context, customerId int) ([]*model.Post, error) {
-	return a.postService.FindByCustomerID(ctx, customerId)
+func (a *adminUsecase) GetPosts(ctx context.Context, query req.PostQuery) (*res.Posts, error) {
+	f := &repository.PostFilter{
+		CustomerID: query.CustomerID,
+		Limit:      query.Limit,
+		Offset:     query.Offset,
+	}
+	posts, err := a.postRepo.Get(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	count, err := a.postRepo.Count(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	return res.GetPosts(posts, count), nil
+
 }
