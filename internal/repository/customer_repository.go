@@ -14,6 +14,7 @@ type CustomerRepository interface {
 	SaveTx(ctx context.Context, customer *model.Customer, tx infrastructure.Transaction) error
 	Delete(ctx context.Context, f infrastructure.Filter) error
 	DeleteTx(ctx context.Context, f infrastructure.Filter, tx infrastructure.Transaction) error
+	Count(ctx context.Context, f infrastructure.Filter) (int, error)
 }
 
 func NewCustomerRepository(dbDriver infrastructure.DBDriver) CustomerRepository {
@@ -67,4 +68,12 @@ func (c *customerRepository) Delete(ctx context.Context, f infrastructure.Filter
 
 func (c *customerRepository) DeleteTx(ctx context.Context, f infrastructure.Filter, tx infrastructure.Transaction) error {
 	return c.dbDriver.DeleteTx(ctx, &model.Customer{}, f, tx)
+}
+
+func (c *customerRepository) Count(ctx context.Context, f infrastructure.Filter) (int, error) {
+	count, err := c.dbDriver.Count(ctx, &model.Customer{}, f)
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
 }

@@ -13,7 +13,7 @@ import (
 )
 
 type fileService struct {
-	httpClient *infrastructure.HttpClient
+	httpClient infrastructure.HttpClient
 }
 
 type FileService interface {
@@ -22,7 +22,7 @@ type FileService interface {
 	RemoveTempDirectory(customerID int) error
 }
 
-func NewFileService(httpClient *infrastructure.HttpClient) FileService {
+func NewFileService(httpClient infrastructure.HttpClient) FileService {
 	return &fileService{
 		httpClient: httpClient,
 	}

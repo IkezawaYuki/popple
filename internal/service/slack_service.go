@@ -14,10 +14,10 @@ type SlackService interface {
 
 type slackService struct {
 	webhookURL string
-	httpClient *infrastructure.HttpClient
+	httpClient infrastructure.HttpClient
 }
 
-func NewSlackService(httpClient *infrastructure.HttpClient) SlackService {
+func NewSlackService(httpClient infrastructure.HttpClient) SlackService {
 	return &slackService{
 		webhookURL: config.Env.SlackWebhookURL,
 		httpClient: httpClient,

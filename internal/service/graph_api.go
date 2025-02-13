@@ -11,7 +11,7 @@ import (
 )
 
 type graphAPI struct {
-	httpClient *infrastructure.HttpClient
+	httpClient infrastructure.HttpClient
 	baseURL    string
 }
 
@@ -20,7 +20,7 @@ type GraphAPI interface {
 	GetInstagramPosts(ctx context.Context, facebookToken string, instagramID string) (*entity.InstagramPosts, error)
 }
 
-func NewGraph(httpClient *infrastructure.HttpClient) GraphAPI {
+func NewGraph(httpClient infrastructure.HttpClient) GraphAPI {
 	return &graphAPI{
 		httpClient: httpClient,
 		baseURL:    config.Env.GraphApiURL,

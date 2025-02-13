@@ -19,6 +19,7 @@ type AdminService interface {
 	FindByID(ctx context.Context, id int) (*model.Admin, error)
 	FindByEmail(ctx context.Context, email string) (*model.Admin, error)
 	FindAll(ctx context.Context) ([]*model.Admin, error)
+	IsUsedEmailAddress(ctx context.Context, email string) (bool, error)
 }
 
 func NewAdminService(customerRepo repository.CustomerRepository, adminRepo repository.AdminRepository) AdminService {
@@ -57,4 +58,12 @@ func (a *adminService) CreateAdmin(ctx context.Context, admin *model.Admin) erro
 		return err
 	}
 	return nil
+}
+
+func (a *adminService) IsUsedEmailAddress(ctx context.Context, email string) (bool, error) {
+	admins, err := a.adminRepository.Get(ctx, &repository.AdminFilter{Email: &email})
+	if err != nil {
+		return false, err
+	}
+	return len(admins) > 0, nil
 }

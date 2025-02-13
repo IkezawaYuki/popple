@@ -8,50 +8,77 @@ import (
 	"github.com/IkezawaYuki/popple/internal/domain/objects"
 	"github.com/IkezawaYuki/popple/internal/repository"
 	"github.com/IkezawaYuki/popple/internal/service"
+	"github.com/IkezawaYuki/popple/internal/usecase/dto/req"
 	"github.com/IkezawaYuki/popple/internal/usecase/dto/res"
 )
-
-type customerUsecase struct {
-	baseRepository   repository.BaseRepository
-	customerService  service.CustomerService
-	authService      service.AuthService
-	postService      service.PostService
-	wordpressRestApi service.WordpressRestAPI
-	graphApi         service.GraphAPI
-	fileTransfer     service.FileService
-}
 
 type CustomerUsecase interface {
 	FetchAndPost(ctx context.Context, customerID int) (*res.Message, error)
 	Login(ctx context.Context, user *entity.User) (string, error)
-	GetCustomer(ctx context.Context, id int) (*model.Customer, error)
-	GetPostsByCustomerID(ctx context.Context, customerID int) ([]*model.Post, error)
+	GetCustomer(ctx context.Context, customerID int) (*res.Customer, error)
+	GetPosts(ctx context.Context, customerID int, req req.Post) (*res.Posts, error)
+}
+
+type customerUsecase struct {
+	baseRepo        repository.BaseRepository
+	postRepo        repository.PostRepository
+	customerRepo    repository.CustomerRepository
+	rodutRepo       repository.RodutRepository
+	customerService service.CustomerService
+	authService     service.AuthService
+	postService     service.PostService
+	graphApi        service.GraphAPI
+	fileTransfer    service.FileService
 }
 
 func NewCustomerUsecase(
 	baseRepo repository.BaseRepository,
+	postRepo repository.PostRepository,
+	customerRepo repository.CustomerRepository,
 	customerSrv service.CustomerService,
 	authSrv service.AuthService,
 	postService service.PostService,
 	graphApi service.GraphAPI,
 	fileTransfer service.FileService,
+	rodutRepo repository.RodutRepository,
 ) CustomerUsecase {
 	return &customerUsecase{
-		baseRepository:  baseRepo,
+		baseRepo:        baseRepo,
+		postRepo:        postRepo,
+		customerRepo:    customerRepo,
 		customerService: customerSrv,
 		authService:     authSrv,
 		postService:     postService,
 		graphApi:        graphApi,
 		fileTransfer:    fileTransfer,
+		rodutRepo:       rodutRepo,
 	}
 }
 
-func (c *customerUsecase) FindAll(ctx context.Context) ([]*model.Customer, error) {
-	return c.customerService.FindAll(ctx)
+func (c *customerUsecase) FindAll(ctx context.Context, query req.CustomerQuery) (*res.Customers, error) {
+	f := &repository.CustomerFilter{
+		PartialName:     query.PartialName,
+		IsFacebookToken: query.IsFacebookToken,
+		Limit:           query.Limit,
+		Offset:          query.Offset,
+	}
+	customers, err := c.customerRepo.Get(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	count, err := c.customerRepo.Count(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	return res.GetCustomers(customers, count), nil
 }
 
-func (c *customerUsecase) GetCustomer(ctx context.Context, id int) (*model.Customer, error) {
-	return c.customerService.FindByID(ctx, id)
+func (c *customerUsecase) GetCustomer(ctx context.Context, id int) (*res.Customer, error) {
+	customer, err := c.customerRepo.First(ctx, &repository.CustomerFilter{ID: &id})
+	if err != nil {
+		return nil, err
+	}
+	return res.GetCustomer(customer), nil
 }
 
 func (c *customerUsecase) Login(ctx context.Context, user *entity.User) (string, error) {
@@ -100,17 +127,18 @@ func (c *customerUsecase) FetchAndPost(ctx context.Context, customerID int) (*re
 		}
 
 		// ワードプレスにメディアをアップロード
-		wordpressMedia, err := c.wordpressRestApi.UploadFiles(ctx, customer.WordpressURL, fileList)
+		wordpressMedia, err := c.rodutRepo.UploadMedias(ctx, customer.WordpressURL, fileList)
 		if err != nil {
 			return nil, err
 		}
 
-		wordpressResp, err := c.wordpressRestApi.CreatePost(ctx, customer.WordpressURL, instagramMedia, wordpressMedia)
+		createPost := entity.NewWordpressPost(instagramMedia, wordpressMedia)
+		wordpressResp, err := c.rodutRepo.CreatePost(ctx, customer.WordpressURL, createPost)
 		if err != nil {
 			return nil, err
 		}
 
-		err = c.postService.Create(ctx, &model.Post{
+		err = c.postRepo.Save(ctx, &model.Post{
 			CustomerID:       customerID,
 			InstagramMediaID: instagramMedia.ID,
 			InstagramLink:    instagramMedia.MediaURL,
@@ -129,10 +157,19 @@ func (c *customerUsecase) FetchAndPost(ctx context.Context, customerID int) (*re
 	return &res.Message{Message: "ok"}, nil
 }
 
-func (c *customerUsecase) GetPostsByCustomerID(ctx context.Context, customerID int) ([]*model.Post, error) {
-	customers, err := c.postService.FindByCustomerID(ctx, customerID)
+func (c *customerUsecase) GetPosts(ctx context.Context, customerID int, req req.Post) (*res.Posts, error) {
+	f := &repository.PostFilter{
+		CustomerID: &customerID,
+		Limit:      req.Limit,
+		Offset:     req.Offset,
+	}
+	posts, err := c.postRepo.Get(ctx, f)
 	if err != nil {
 		return nil, err
 	}
-
+	counts, err := c.postRepo.Count(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	return res.GetPosts(posts, counts), nil
 }

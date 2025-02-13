@@ -6,6 +6,8 @@ type PostFilter struct {
 	ID               *int
 	InstagramMediaID *string
 	CustomerID       *int
+	Limit            *int
+	Offset           *int
 }
 
 func (p *PostFilter) GenerateMods(db *gorm.DB) *gorm.DB {
@@ -17,6 +19,12 @@ func (p *PostFilter) GenerateMods(db *gorm.DB) *gorm.DB {
 	}
 	if p.CustomerID != nil {
 		db = db.Where("customer_id = ?", *p.CustomerID)
+	}
+	if p.Limit != nil {
+		db = db.Limit(*p.Limit)
+		if p.Offset != nil {
+			db = db.Offset(*p.Offset)
+		}
 	}
 	return db
 }

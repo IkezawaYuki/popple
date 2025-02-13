@@ -6,8 +6,9 @@ type CreatePostResponse struct {
 }
 
 type UploadMediaResponse struct {
-	ID        string `json:"id"`
+	ID        int    `json:"id"`
 	SourceUrl string `json:"source_url"`
+	MimeType  string `json:"mime_type"`
 }
 
 type TitleResponse struct {

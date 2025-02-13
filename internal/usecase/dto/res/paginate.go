@@ -1,6 +1,6 @@
 package res
 
 type Paginate struct {
-	Total int64 `json:"total" binding:"required"`
-	Count int64 `json:"count" binding:"required"`
+	Total int `json:"total" binding:"required"`
+	Count int `json:"count" binding:"required"`
 }

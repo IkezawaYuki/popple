@@ -8,4 +8,5 @@ var (
 	ErrAuthentication = errors.New("authentication err")
 	ErrAuthorization  = errors.New("authorization err")
 	ErrDuplicateKey   = errors.New("duplicate key err")
+	ErrEmailUsed      = errors.New("email is already in use")
 )

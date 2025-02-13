@@ -2,6 +2,7 @@ package entity
 
 import (
 	"fmt"
+	"github.com/IkezawaYuki/popple/internal/usecase/dto/exres"
 	"strings"
 )
 
@@ -18,14 +19,14 @@ type WordpressMedia struct {
 	MediaType string `json:"media_type"`
 }
 
-func NewWordpressPost(instaDetail InstagramPost, wpMedia []*WordpressMedia) WordpressPost {
+func NewWordpressPost(instaDetail InstagramPost, wpMedia []*exres.UploadMediaResponse) WordpressPost {
 	wordpressPosts := WordpressPost{}
 	wordpressPosts.Title = instaDetail.Title()
 	wordpressPosts.FeaturedMedia = wpMedia[0].ID
 	if instaDetail.MediaType == "IMAGE" {
-		wordpressPosts.Content = fmt.Sprintf("%s%s", getImageHtml(wpMedia[0].SourceURL), getContentHtml(instaDetail.Caption))
+		wordpressPosts.Content = fmt.Sprintf("%s%s", getImageHtml(wpMedia[0].SourceUrl), getContentHtml(instaDetail.Caption))
 	} else if instaDetail.MediaType == "VIDEO" {
-		wordpressPosts.Content = fmt.Sprintf("%s%s", getVideoHtml(wpMedia[0].SourceURL), getContentHtml(instaDetail.Caption))
+		wordpressPosts.Content = fmt.Sprintf("%s%s", getVideoHtml(wpMedia[0].SourceUrl), getContentHtml(instaDetail.Caption))
 	} else {
 		wordpressPosts.Content = getCarousel(instaDetail, wpMedia)
 	}
@@ -33,14 +34,14 @@ func NewWordpressPost(instaDetail InstagramPost, wpMedia []*WordpressMedia) Word
 	return wordpressPosts
 }
 
-func getCarousel(instaDetail InstagramPost, wpMedia []*WordpressMedia) string {
+func getCarousel(instaDetail InstagramPost, wpMedia []*exres.UploadMediaResponse) string {
 	sb := strings.Builder{}
 	sb.WriteString("<div class='a-root-wordpress-instagram-slider'>")
 	for _, media := range wpMedia {
-		if media.MediaType == "IMAGE" {
-			sb.WriteString(getImageHtml(media.SourceURL))
-		} else if media.MediaType == "VIDEO" {
-			sb.WriteString(getVideoHtml(media.SourceURL))
+		if media.MimeType == "'video/mp4" {
+			sb.WriteString(getVideoHtml(media.SourceUrl))
+		} else {
+			sb.WriteString(getImageHtml(media.SourceUrl))
 		}
 	}
 	sb.WriteString("</div>")
@@ -53,8 +54,7 @@ func getVideoHtml(url string) string {
 }
 
 func getImageHtml(url string) string {
-	return fmt.Sprintf(`<div><video src='%s' style='margin: 0 auto;' width='500px' height='500px' controls>
-Sorry, your browser does not support embedded videos.</video></div>`, url)
+	return fmt.Sprintf(`<div><video src='%s' style='margin: 0 auto;' width='500px' height='500px' controls>Sorry, your browser does not support embedded videos.</video></div>`, url)
 }
 
 func getContentHtml(caption string) string {

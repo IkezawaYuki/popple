@@ -2,43 +2,89 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"github.com/IkezawaYuki/popple/internal/domain/entity"
 	"github.com/IkezawaYuki/popple/internal/domain/model"
 	"github.com/IkezawaYuki/popple/internal/domain/objects"
 	"github.com/IkezawaYuki/popple/internal/repository"
 	"github.com/IkezawaYuki/popple/internal/service"
+	"github.com/IkezawaYuki/popple/internal/usecase/dto/req"
+	"github.com/IkezawaYuki/popple/internal/usecase/dto/res"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type adminUsecase struct {
 	baseRepository  repository.BaseRepository
+	adminRepo       repository.AdminRepository
+	customerRepo    repository.CustomerRepository
 	adminService    service.AdminService
 	authService     service.AuthService
 	customerService service.CustomerService
 	postService     service.PostService
 }
 
-type AdminUsecase interface{}
+type AdminUsecase interface {
+}
 
 func NewAdminUsecase(
 	baseRepo repository.BaseRepository,
+	adminRepo repository.AdminRepository,
+	customerRepo repository.CustomerRepository,
 	adminSrv service.AdminService,
 	authSrv service.AuthService,
 	customerService service.CustomerService,
 ) AdminUsecase {
 	return &adminUsecase{
 		baseRepository:  baseRepo,
+		adminRepo:       adminRepo,
+		customerRepo:    customerRepo,
 		adminService:    adminSrv,
 		authService:     authSrv,
 		customerService: customerService,
 	}
 }
 
-func (a *adminUsecase) RegisterCustomer(ctx context.Context, customer *model.Customer) (*model.Customer, error) {
-	panic("implement me")
+func (a *adminUsecase) RegisterCustomer(ctx context.Context, body req.CreateCustomerBody) (resp *res.Customer, err error) {
+	tx := a.baseRepository.Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	used, err := a.customerService.IsUsedEmailAddress(ctx, body.Email, tx)
+	if err != nil {
+		return nil, err
+	}
+	if used {
+		return nil, objects.ErrEmailUsed
+	}
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	customer := &model.Customer{
+		Name:           body.Name,
+		Email:          body.Email,
+		Password:       string(passwordHash),
+		WordpressURL:   body.WordpressURL,
+		DeleteHashFlag: 0,
+	}
+	err = a.customerRepo.SaveTx(ctx, customer, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return res.GetCustomer(customer), nil
 }
 
-func (a *adminUsecase) RegisterAdmin(ctx context.Context, admin *model.Admin) error {
-	panic("implement me")
+func (a *adminUsecase) RegisterAdmin(ctx context.Context, body req.CreateAdminBody) (*res.Admin, error) {
+
 }
 
 func (a *adminUsecase) Login(ctx context.Context, user *entity.User) (string, error) {

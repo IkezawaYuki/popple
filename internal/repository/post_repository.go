@@ -11,6 +11,7 @@ type PostRepository interface {
 	GetTx(ctx context.Context, f *PostFilter, tx infrastructure.Transaction) ([]*model.Post, error)
 	Save(ctx context.Context, post *model.Post) error
 	SaveTx(ctx context.Context, post *model.Post, tx infrastructure.Transaction) error
+	Count(ctx context.Context, f *PostFilter) (int, error)
 }
 
 func NewPostRepository(dbDriver infrastructure.DBDriver) PostRepository {
@@ -47,4 +48,12 @@ func (p *postRepository) Save(ctx context.Context, post *model.Post) error {
 
 func (p *postRepository) SaveTx(ctx context.Context, post *model.Post, tx infrastructure.Transaction) error {
 	return p.dbDriver.SaveTx(ctx, post, tx)
+}
+
+func (p *postRepository) Count(ctx context.Context, f *PostFilter) (int, error) {
+	count, err := p.dbDriver.Count(ctx, &model.Post{}, f)
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
 }

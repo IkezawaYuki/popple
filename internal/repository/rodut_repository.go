@@ -12,29 +12,32 @@ import (
 )
 
 type RodutRepository interface {
-	CreatePost(ctx context.Context, wordpressUrl string, email string, post *entity.WordpressPost) (*exres.CreatePostResponse, error)
+	CreatePost(ctx context.Context, wordpressUrl string, post entity.WordpressPost) (*exres.CreatePostResponse, error)
 	UploadMedia(ctx context.Context, wordpressUrl string, filePath string) (*exres.UploadMediaResponse, error)
+	UploadMedias(ctx context.Context, wordpressUrl string, filePath []string) ([]*exres.UploadMediaResponse, error)
 }
 
 func NewRodutRepository(httpClient infrastructure.HttpClient) RodutRepository {
 	return &rodutRepository{
 		httpClient: httpClient,
 		ApiKey:     config.Env.RodutKey,
+		AdminEmail: config.Env.WordpressAdminEmail,
 	}
 }
 
 type rodutRepository struct {
 	httpClient infrastructure.HttpClient
 	ApiKey     string
+	AdminEmail string
 }
 
 const createPostEndpoint = "create-post"
 
-func (r *rodutRepository) CreatePost(ctx context.Context, wordpressUrl string, email string, post *entity.WordpressPost) (*exres.CreatePostResponse, error) {
+func (r *rodutRepository) CreatePost(ctx context.Context, wordpressUrl string, post entity.WordpressPost) (*exres.CreatePostResponse, error) {
 	url := fmt.Sprintf("https://%s/rodut/v1/%s", wordpressUrl, createPostEndpoint)
 	responseBody, err := r.httpClient.PostRequest(ctx, url, &exreq.CreatePostRequest{
 		ApiKey:        r.ApiKey,
-		Email:         email,
+		Email:         r.AdminEmail,
 		Title:         post.Title,
 		Content:       post.Content,
 		FeaturedMedia: post.FeaturedMedia,
@@ -64,4 +67,16 @@ func (r *rodutRepository) UploadMedia(ctx context.Context, wordpressUrl string, 
 		return nil, err
 	}
 	return &uploadMedia, nil
+}
+
+func (r *rodutRepository) UploadMedias(ctx context.Context, wordpressUrl string, filePaths []string) ([]*exres.UploadMediaResponse, error) {
+	result := make([]*exres.UploadMediaResponse, len(filePaths))
+	for i, filePath := range filePaths {
+		resp, err := r.UploadMedia(ctx, wordpressUrl, filePath)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = resp
+	}
+	return result, nil
 }

@@ -62,12 +62,16 @@ func NewCustomerUsecase(dbDriver infrastructure.DBDriver, redisCli *redis.Client
 	authService := service.NewAuthService(customerRepo, redisClient)
 	postService := service.NewPostService(postRepo)
 	graphApi := service.NewGraph(httpClient)
+	rodutRepo := repository.NewRodutRepository(httpClient)
 	fileTransfer := service.NewFileService(httpClient)
 	return usecase.NewCustomerUsecase(
 		baseRepo,
+		postRepo,
+		customerRepo,
 		customerService,
 		authService,
 		postService,
 		graphApi,
-		fileTransfer)
+		fileTransfer,
+		rodutRepo)
 }

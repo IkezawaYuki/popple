@@ -12,14 +12,20 @@ import (
 	"path/filepath"
 )
 
-type HttpClient struct {
+type httpClient struct {
 }
 
-func NewHttpClient() *HttpClient {
-	return &HttpClient{}
+type HttpClient interface {
+	GetRequest(ctx context.Context, url string, authorization string) ([]byte, error)
+	PostRequest(ctx context.Context, url string, reqBody any, authorization string) ([]byte, error)
+	UploadFile(ctx context.Context, endpoint, filepathName string, authorization string) ([]byte, error)
 }
 
-func (c *HttpClient) PostRequest(ctx context.Context, url string, reqBody any, authorization string) ([]byte, error) {
+func NewHttpClient() HttpClient {
+	return &httpClient{}
+}
+
+func (c *httpClient) PostRequest(ctx context.Context, url string, reqBody any, authorization string) ([]byte, error) {
 	client := &http.Client{}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
@@ -49,7 +55,7 @@ func (c *HttpClient) PostRequest(ctx context.Context, url string, reqBody any, a
 	return bodyBytes, nil
 }
 
-func (c *HttpClient) GetRequest(ctx context.Context, url string, authorization string) ([]byte, error) {
+func (c *httpClient) GetRequest(ctx context.Context, url string, authorization string) ([]byte, error) {
 	client := &http.Client{}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -77,7 +83,7 @@ func (c *HttpClient) GetRequest(ctx context.Context, url string, authorization s
 	return bodyBytes, nil
 }
 
-func (c *HttpClient) UploadFile(ctx context.Context, endpoint, filepathName string, authorization string) ([]byte, error) {
+func (c *httpClient) UploadFile(ctx context.Context, endpoint, filepathName string, authorization string) ([]byte, error) {
 	file, err := os.Open(filepathName)
 	if err != nil {
 		return nil, err
