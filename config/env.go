@@ -19,6 +19,7 @@ type Environment struct {
 	GraphApiURL            string `envconfig:"GRAPH_API_URL"`
 	SlackWebhookURL        string `envconfig:"SLACK_WEBHOOK_URL"`
 	RodutKey               string `envconfig:"RODUT_KEY"`
+	StripeEndpointSecret   string `envconfig:"STRIPE_ENDPOINT_SECRET"`
 }
 
 var Env Environment

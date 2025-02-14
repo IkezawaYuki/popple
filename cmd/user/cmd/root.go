@@ -6,7 +6,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/IkezawaYuki/popple/di"
-	"github.com/IkezawaYuki/popple/internal/domain/entity"
+	"github.com/IkezawaYuki/popple/internal/domain/model"
 	"github.com/IkezawaYuki/popple/internal/infrastructure"
 	"github.com/IkezawaYuki/popple/internal/service"
 	"os"
@@ -32,7 +32,7 @@ to quickly create a Cobra application.`,
 		var category string
 		_, _ = fmt.Scan(&category)
 		if category == "customer" {
-			var customer entity.Customer
+			var customer model.Customer
 			fmt.Println("名前を入力してください：")
 			var name string
 			_, _ = fmt.Scan(&name)
@@ -58,7 +58,7 @@ to quickly create a Cobra application.`,
 			_, _ = fmt.Scan(&facebookToken)
 			customer.FacebookToken = &facebookToken
 
-			err := srv.CreateCustomer(cmd.Context(), &customer)
+			err := srv.Create(cmd.Context(), &customer)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -81,7 +81,7 @@ func Execute() {
 	}
 }
 
-var srv *service.CustomerService
+var srv service.CustomerService
 
 func init() {
 	// Here you will define your flags and configuration settings.

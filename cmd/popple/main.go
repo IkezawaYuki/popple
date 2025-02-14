@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"github.com/IkezawaYuki/popple/di"
 	"github.com/IkezawaYuki/popple/docs"
 	"github.com/IkezawaYuki/popple/internal/infrastructure"
@@ -9,7 +11,11 @@ import (
 	"github.com/labstack/echo/v4"
 	middleware2 "github.com/labstack/echo/v4/middleware"
 	echoSwagger "github.com/swaggo/echo-swagger"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
 )
 
 // @securityDefinitions.apikey BearerAuth
@@ -21,14 +27,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer func() {
-		_ = conn.Close()
-	}()
 
 	redisCli := infrastructure.GetRedisConnection()
-	defer func() {
-		_ = redisCli.Close()
-	}()
 
 	customerController := di.NewCustomerController(db, redisCli)
 	adminController := di.NewAdminController(db, redisCli)
@@ -103,5 +103,36 @@ func main() {
 
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	e.Logger.Fatal(e.Start(":1323"))
+	srv := http.Server{
+		Addr:    ":1323",
+		Handler: e,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatal(err)
+		}
+	}()
+
+	log.Println("server is running")
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	log.Println("Shutdown Server ...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server Shutdown:", err)
+	}
+	log.Println("Server exiting")
+	err = conn.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = redisCli.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("bye bye!")
 }
