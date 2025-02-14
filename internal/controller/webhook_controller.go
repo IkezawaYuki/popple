@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"github.com/IkezawaYuki/popple/config"
+	"github.com/IkezawaYuki/popple/internal/usecase"
 	"github.com/labstack/echo/v4"
 	"github.com/stripe/stripe-go/webhook"
 	"io"
@@ -11,10 +12,13 @@ import (
 )
 
 type WebhookController struct {
+	adminUsecase usecase.AdminUsecase
 }
 
-func NewWebhookController() WebhookController {
-	return WebhookController{}
+func NewWebhookController(adminUsecase usecase.AdminUsecase) WebhookController {
+	return WebhookController{
+		adminUsecase: adminUsecase,
+	}
 }
 
 func (w *WebhookController) StripeWebhook(c echo.Context) error {
@@ -33,8 +37,7 @@ func (w *WebhookController) StripeWebhook(c echo.Context) error {
 	// Unmarshal the event data into an appropriate struct depending on its Type
 	switch event.Type {
 	case "payment_intent.succeeded":
-		// Then define and call a function to handle the event payment_intent.succeeded
-		// ... handle other event types
+		
 	default:
 		_, _ = fmt.Fprintf(os.Stderr, "Unhandled event type: %s\n", event.Type)
 	}

@@ -7,14 +7,7 @@ import (
 	"net/http"
 )
 
-type Presenter struct {
-}
-
-func NewPresenter() *Presenter {
-	return &Presenter{}
-}
-
-func (p *Presenter) Generate(err error, body any) (int, any) {
+func Generate(err error, body any) (int, any) {
 	slog.Info("Generate is invoked")
 	if err == nil {
 		return http.StatusOK, body
@@ -27,6 +20,8 @@ func (p *Presenter) Generate(err error, body any) (int, any) {
 	case errors.Is(err, objects.ErrAuthorization):
 		return http.StatusUnauthorized, err.Error()
 	case errors.Is(err, objects.ErrDuplicateEmail):
+		return http.StatusBadRequest, err.Error()
+	case errors.Is(err, objects.ErrEmailUsed):
 		return http.StatusBadRequest, err.Error()
 	default:
 		return http.StatusInternalServerError, err.Error()

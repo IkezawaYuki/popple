@@ -8,7 +8,7 @@ import (
 	"log/slog"
 )
 
-func NewBatchAuthMiddleware(authService service.AuthService, presenter *presenter.Presenter) echo.MiddlewareFunc {
+func NewBatchAuthMiddleware(authService service.AuthService) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			return next(c)
@@ -16,7 +16,7 @@ func NewBatchAuthMiddleware(authService service.AuthService, presenter *presente
 	}
 }
 
-func NewAdminAuthMiddleware(authService service.AuthService, presenter *presenter.Presenter) echo.MiddlewareFunc {
+func NewAdminAuthMiddleware(authService service.AuthService) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			slog.Info("AdminAuthMiddleware is invoked")
@@ -32,7 +32,7 @@ func NewAdminAuthMiddleware(authService service.AuthService, presenter *presente
 	}
 }
 
-func NewCustomerAuthMiddleware(authService service.AuthService, presenter *presenter.Presenter) echo.MiddlewareFunc {
+func NewCustomerAuthMiddleware(authService service.AuthService) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			slog.Info("CustomerAuthMiddleware is invoked")

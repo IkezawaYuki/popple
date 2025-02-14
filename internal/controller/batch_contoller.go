@@ -7,14 +7,12 @@ import (
 )
 
 type BatchController struct {
-	batchUsecase  usecase.BatchUsecase
-	httpPresenter presenter.Presenter
+	batchUsecase usecase.BatchUsecase
 }
 
-func NewBatchController(batchUsecase *usecase.BatchUsecase, presenter2 *presenter.Presenter) BatchController {
+func NewBatchController(batchUsecase usecase.BatchUsecase) BatchController {
 	return BatchController{
-		batchUsecase:  *batchUsecase,
-		httpPresenter: *presenter2,
+		batchUsecase: batchUsecase,
 	}
 }
 
@@ -27,5 +25,5 @@ func NewBatchController(batchUsecase *usecase.BatchUsecase, presenter2 *presente
 //	@Router			/badge/execute [get]
 func (ctr *BatchController) Execute(c echo.Context) error {
 	resp, err := ctr.batchUsecase.Execute(c.Request().Context())
-	return c.JSON(ctr.httpPresenter.Generate(err, resp))
+	return c.JSON(presenter.Generate(err, resp))
 }

@@ -7,20 +7,25 @@ import (
 	"sync"
 )
 
-type BatchUsecase struct {
+type batchUsecase struct {
 	customerService service.CustomerService
 	customerUsecase CustomerUsecase
 	slack           service.SlackService
 }
 
-func NewBatchUsecase(customerUsecase CustomerUsecase, slackService service.SlackService) *BatchUsecase {
-	return &BatchUsecase{
+type BatchUsecase interface {
+	Execute(ctx context.Context) (*res.Message, error)
+}
+
+func NewBatchUsecase(customerService service.CustomerService, customerUsecase CustomerUsecase, slackService service.SlackService) BatchUsecase {
+	return &batchUsecase{
+		customerService: customerService,
 		customerUsecase: customerUsecase,
 		slack:           slackService,
 	}
 }
 
-func (b *BatchUsecase) Execute(ctx context.Context) (*res.Message, error) {
+func (b *batchUsecase) Execute(ctx context.Context) (*res.Message, error) {
 	customers, err := b.customerService.FindAuthCustomers(ctx)
 	if err != nil {
 		return nil, err
@@ -40,15 +45,14 @@ func (b *BatchUsecase) Execute(ctx context.Context) (*res.Message, error) {
 			defer wg.Done()
 			defer func() { <-sem }() // 処理が完了したらセマフォを解放
 
-			// Fetch Instagram Media
 			if _, err := b.customerUsecase.FetchAndPost(ctx, customerID); err != nil {
+				_ = b.slack.SendAlert(ctx, err.Error())
 				return
 			}
 
 		}(customer.ID)
 	}
-
-	// Wait for all goroutines to finish
+	
 	wg.Wait()
 
 	return &res.Message{Message: "ok"}, nil

@@ -13,13 +13,11 @@ import (
 
 type AdminController struct {
 	adminUsecase usecase.AdminUsecase
-	presenter    *presenter.Presenter
 }
 
-func NewAdminController(adminUsecase usecase.AdminUsecase, presenter2 *presenter.Presenter) AdminController {
+func NewAdminController(adminUsecase usecase.AdminUsecase) AdminController {
 	return AdminController{
 		adminUsecase: adminUsecase,
-		presenter:    presenter2,
 	}
 }
 
@@ -46,7 +44,7 @@ func (a *AdminController) RegisterCustomer(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
-	return c.JSON(a.presenter.Generate(err, resp))
+	return c.JSON(presenter.Generate(err, resp))
 }
 
 // Login godoc
@@ -65,7 +63,7 @@ func (a *AdminController) Login(c echo.Context) error {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
 	token, err := a.adminUsecase.Login(c.Request().Context(), &user)
-	return c.JSON(a.presenter.Generate(err, token))
+	return c.JSON(presenter.Generate(err, token))
 }
 
 // GetCustomers godoc
@@ -83,7 +81,7 @@ func (a *AdminController) GetCustomers(c echo.Context) error {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
 	customers, err := a.adminUsecase.GetCustomers(c.Request().Context(), query)
-	return c.JSON(a.presenter.Generate(err, customers))
+	return c.JSON(presenter.Generate(err, customers))
 }
 
 // GetCustomer godoc
@@ -103,7 +101,7 @@ func (a *AdminController) GetCustomer(c echo.Context) error {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
 	customer, err := a.adminUsecase.GetCustomer(c.Request().Context(), customerId)
-	return c.JSON(a.presenter.Generate(err, customer))
+	return c.JSON(presenter.Generate(err, customer))
 }
 
 // GetPostsByCustomer godoc
@@ -128,7 +126,7 @@ func (a *AdminController) GetPostsByCustomer(c echo.Context) error {
 	}
 
 	posts, err := a.adminUsecase.GetPosts(c.Request().Context(), customerId, query)
-	return c.JSON(a.presenter.Generate(err, posts))
+	return c.JSON(presenter.Generate(err, posts))
 }
 
 // GetAdmins godoc
@@ -146,7 +144,7 @@ func (a *AdminController) GetAdmins(c echo.Context) error {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
 	admins, err := a.adminUsecase.GetAdmins(c.Request().Context(), query)
-	return c.JSON(a.presenter.Generate(err, admins))
+	return c.JSON(presenter.Generate(err, admins))
 }
 
 // GetAdmin godoc
@@ -162,7 +160,7 @@ func (a *AdminController) GetAdmin(c echo.Context) error {
 	slog.Info("GetAdmin is invoked")
 	adminId := c.Get("admin_id").(int)
 	admin, err := a.adminUsecase.GetAdmin(c.Request().Context(), adminId)
-	return c.JSON(a.presenter.Generate(err, admin))
+	return c.JSON(presenter.Generate(err, admin))
 }
 
 // RegisterAdmin godoc
@@ -183,5 +181,5 @@ func (a *AdminController) RegisterAdmin(c echo.Context) error {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
 	resp, err := a.adminUsecase.RegisterAdmin(c.Request().Context(), admin)
-	return c.JSON(a.presenter.Generate(err, resp))
+	return c.JSON(presenter.Generate(err, resp))
 }

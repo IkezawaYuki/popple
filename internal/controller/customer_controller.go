@@ -12,13 +12,11 @@ import (
 
 type CustomerController struct {
 	customerUsecase usecase.CustomerUsecase
-	presenter       *presenter.Presenter
 }
 
-func NewCustomerController(customerUsecase usecase.CustomerUsecase, presenter2 *presenter.Presenter) CustomerController {
+func NewCustomerController(customerUsecase usecase.CustomerUsecase) CustomerController {
 	return CustomerController{
 		customerUsecase: customerUsecase,
-		presenter:       presenter2,
 	}
 }
 
@@ -41,7 +39,7 @@ func (ctr *CustomerController) Login(c echo.Context) error {
 	}
 	ctx := c.Request().Context()
 	token, err := ctr.customerUsecase.Login(ctx, &user)
-	return c.JSON(ctr.presenter.Generate(err, token))
+	return c.JSON(presenter.Generate(err, token))
 }
 
 // GetCustomer godoc
@@ -58,7 +56,7 @@ func (ctr *CustomerController) GetCustomer(c echo.Context) error {
 	customerId := c.Get("customer_id").(int)
 	ctx := c.Request().Context()
 	customer, err := ctr.customerUsecase.GetCustomer(ctx, customerId)
-	return c.JSON(ctr.presenter.Generate(err, customer))
+	return c.JSON(presenter.Generate(err, customer))
 }
 
 // GetPosts godoc
@@ -78,7 +76,7 @@ func (ctr *CustomerController) GetPosts(c echo.Context) error {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
 	posts, err := ctr.customerUsecase.GetPosts(c.Request().Context(), customerId, query)
-	return c.JSON(ctr.presenter.Generate(err, posts))
+	return c.JSON(presenter.Generate(err, posts))
 }
 
 // FetchAndPost godoc
@@ -95,5 +93,5 @@ func (ctr *CustomerController) FetchAndPost(c echo.Context) error {
 	customerID := c.Get("customer_id").(int)
 	ctx := c.Request().Context()
 	resp, err := ctr.customerUsecase.FetchAndPost(ctx, customerID)
-	return c.JSON(ctr.presenter.Generate(err, resp))
+	return c.JSON(presenter.Generate(err, resp))
 }
