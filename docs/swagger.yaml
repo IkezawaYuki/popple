@@ -1,9 +1,104 @@
+definitions:
+  req.CreateAdminBody:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  req.CreateCustomerBody:
+    properties:
+      delete_hash_flag:
+        example: 0
+        type: integer
+      email:
+        example: yuki@gmail.com
+        type: string
+      name:
+        example: yuki
+        type: string
+      password:
+        example: "123456"
+        type: string
+      wordpress_url:
+        example: example.com
+        type: string
+    type: object
+  req.User:
+    properties:
+      email:
+        example: test@test.com
+        type: string
+      password:
+        example: "123456"
+        type: string
+    type: object
+  res.Admin:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      password:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  res.Auth:
+    properties:
+      token:
+        type: string
+    type: object
+  res.Customer:
+    properties:
+      created_at:
+        type: string
+      delete_hash_flag:
+        type: integer
+      email:
+        type: string
+      facebook_token:
+        type: string
+      id:
+        type: integer
+      instagram_id:
+        type: string
+      instagram_name:
+        type: string
+      name:
+        type: string
+      start_date:
+        type: string
+      updated_at:
+        type: string
+      wordpress_url:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
   /admin/admins:
     get:
       description: 管理者ユーザーを一覧で取得します
+      parameters:
+      - in: query
+        name: email
+        type: string
+      - in: query
+        name: limit
+        type: integer
+      - in: query
+        name: offset
+        type: integer
+      - in: query
+        name: partialName
+        type: string
       produces:
       - application/json
       responses: {}
@@ -31,7 +126,28 @@ paths:
       - Admin
   /admin/customers:
     get:
+      consumes:
+      - application/json
       description: 全顧客を一覧で取得します
+      parameters:
+      - in: query
+        name: email
+        type: string
+      - in: query
+        name: facebookToken
+        type: string
+      - in: query
+        name: isFacebookToken
+        type: boolean
+      - in: query
+        name: limit
+        type: integer
+      - in: query
+        name: offset
+        type: integer
+      - in: query
+        name: partialName
+        type: string
       produces:
       - application/json
       responses: {}
@@ -42,10 +158,10 @@ paths:
       - Admin
   /admin/customers/{customerId}:
     get:
-      description: 顧客を一件取得します
+      description: 顧客情報を取得します
       parameters:
-      - description: Customer ID
-        in: query
+      - description: 顧客ID
+        in: path
         name: customerId
         required: true
         type: integer
@@ -54,15 +170,15 @@ paths:
       responses: {}
       security:
       - Token: []
-      summary: 顧客取得
+      summary: 顧客情報取得
       tags:
       - Admin
   /admin/customers/{customerId}/posts:
     get:
       description: 顧客ごとの投稿データを一覧で取得します
       parameters:
-      - description: Customer ID
-        in: query
+      - description: 顧客ID
+        in: path
         name: customerId
         required: true
         type: integer
@@ -77,42 +193,44 @@ paths:
   /admin/login:
     post:
       consumes:
-      - application/x-www-form-urlencoded
+      - application/json
       description: 管理者としてログインします
       parameters:
-      - description: Email
-        in: formData
-        name: email
+      - description: ユーザー情報
+        in: body
+        name: body
         required: true
-        type: string
-      - description: Password
-        in: formData
-        name: password
-        required: true
-        type: string
-      responses: {}
+        schema:
+          $ref: '#/definitions/req.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: トークン
+          schema:
+            $ref: '#/definitions/res.Auth'
       summary: ログイン
       tags:
       - Admin
   /admin/register/admin:
     post:
+      consumes:
+      - application/json
       description: 管理者ユーザーを作成します
       parameters:
-      - description: Name
-        in: formData
-        name: name
-        type: string
-      - description: Password
-        in: formData
-        name: password
-        type: string
-      - description: Email
-        in: formData
-        name: email
-        type: string
+      - description: 管理者情報
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/req.CreateAdminBody'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Admin'
       security:
       - Token: []
       summary: 管理者ユーザーの作成
@@ -120,27 +238,23 @@ paths:
       - Admin
   /admin/register/customer:
     post:
+      consumes:
+      - application/json
       description: 顧客を作成します
       parameters:
-      - description: Name
-        in: formData
-        name: name
-        type: string
-      - description: Password
-        in: formData
-        name: password
-        type: string
-      - description: Email
-        in: formData
-        name: email
-        type: string
-      - description: WordPress URL
-        in: formData
-        name: wordpress_url
-        type: string
+      - description: 顧客作成用リクエスト
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/req.CreateCustomerBody'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Customer'
       security:
       - Token: []
       summary: 顧客の作成
@@ -201,20 +315,20 @@ paths:
   /customer/login:
     post:
       consumes:
-      - application/x-www-form-urlencoded
+      - application/json
       description: 顧客としてログインします
       parameters:
-      - description: Email
-        in: formData
-        name: email
-        type: string
-      - description: Password
-        in: formData
-        name: password
-        type: string
-      responses: {}
-      security:
-      - Token: []
+      - description: ユーザー情報
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/req.User'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Auth'
       summary: ログイン
       tags:
       - Customer

@@ -22,23 +22,20 @@ func NewCustomerController(customerUsecase usecase.CustomerUsecase) CustomerCont
 
 // Login godoc
 //
-//	@Summary		ログイン
-//	@Description	顧客としてログインします
-//	@Tags			Customer
-//	@Accept			application/x-www-form-urlencoded
-//	@Param			email			formData	string	false	"Email"
-//	@Param			password		formData	string	false	"Password"
-//	@Router			/customer/login [post]
+// @Summary	ログイン
+// @Description	顧客としてログインします
+// @Tags Customer
+// @Accept application/json
+// @Param  body body req.User  true  "ユーザー情報"
+// @Success      200   {object}  res.Auth
+// @Router /customer/login [post]
 func (ctr *CustomerController) Login(c echo.Context) error {
 	slog.Info("Login is invoked")
 	var user entity.User
-	user.Email = c.FormValue("email")
-	user.Password = c.FormValue("password")
-	if user.Email == "" || user.Password == "" {
+	if err := c.Bind(&user); err != nil {
 		return c.String(http.StatusBadRequest, "invalid value")
 	}
-	ctx := c.Request().Context()
-	token, err := ctr.customerUsecase.Login(ctx, &user)
+	token, err := ctr.customerUsecase.Login(c.Request().Context(), &user)
 	return c.JSON(presenter.Generate(err, token))
 }
 
@@ -54,8 +51,7 @@ func (ctr *CustomerController) Login(c echo.Context) error {
 func (ctr *CustomerController) GetCustomer(c echo.Context) error {
 	slog.Info("GetCustomer is invoked")
 	customerId := c.Get("customer_id").(int)
-	ctx := c.Request().Context()
-	customer, err := ctr.customerUsecase.GetCustomer(ctx, customerId)
+	customer, err := ctr.customerUsecase.GetCustomer(c.Request().Context(), customerId)
 	return c.JSON(presenter.Generate(err, customer))
 }
 
@@ -91,7 +87,6 @@ func (ctr *CustomerController) GetPosts(c echo.Context) error {
 func (ctr *CustomerController) FetchAndPost(c echo.Context) error {
 	slog.Info("FetchAndPost is invoked")
 	customerID := c.Get("customer_id").(int)
-	ctx := c.Request().Context()
-	resp, err := ctr.customerUsecase.FetchAndPost(ctx, customerID)
+	resp, err := ctr.customerUsecase.FetchAndPost(c.Request().Context(), customerID)
 	return c.JSON(presenter.Generate(err, resp))
 }

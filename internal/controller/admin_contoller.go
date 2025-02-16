@@ -23,16 +23,15 @@ func NewAdminController(adminUsecase usecase.AdminUsecase) AdminController {
 
 // RegisterCustomer godoc
 //
-//	@Summary		顧客の作成
-//	@Tags			Admin
-//	@Description	顧客を作成します
-//	@Produce		json
-//	@Security		Token
-//	@Param			name			formData	string	false	"Name"
-//	@Param			password		formData	string	false	"Password"
-//	@Param			email			formData	string	false	"Email"
-//	@Param			wordpress_url	formData	string	false	"WordPress URL"
-//	@Router			/admin/register/customer [post]
+// @Summary      顧客の作成
+// @Description  顧客を作成します
+// @Tags         Admin
+// @Accept application/json
+// @Produce      application/json
+// @Security     Token
+// @Param        body body req.CreateCustomerBody  true  "顧客作成用リクエスト"
+// @Success      200   {object}  res.Customer
+// @Router       /admin/register/customer [post]
 func (a *AdminController) RegisterCustomer(c echo.Context) error {
 	slog.Info("RegisterCustomer is invoked")
 	var registerCustomer req.CreateCustomerBody
@@ -49,13 +48,14 @@ func (a *AdminController) RegisterCustomer(c echo.Context) error {
 
 // Login godoc
 //
-//	@Summary		ログイン
-//	@Tags			Admin
-//	@Description	管理者としてログインします
-//	@Accept			application/x-www-form-urlencoded
-//	@Param			email			formData	string	true	"Email"
-//	@Param			password		formData	string	true	"Password"
-//	@Router			/admin/login [post]
+// @Summary      ログイン
+// @Description  管理者としてログインします
+// @Tags         Admin
+// @Accept       application/json
+// @Produce      application/json
+// @Param        body body req.User  true  "ユーザー情報"
+// @Success      200   {object}  res.Auth "トークン"
+// @Router		/admin/login [post]
 func (a *AdminController) Login(c echo.Context) error {
 	slog.Info("Login is invoked")
 	var user entity.User
@@ -67,13 +67,14 @@ func (a *AdminController) Login(c echo.Context) error {
 }
 
 // GetCustomers godoc
-//
-//	@Summary		顧客一覧取得
-//	@Tags			Admin
-//	@Description	全顧客を一覧で取得します
-//	@Produce		json
-//	@Security		Token
-//	@Router			/admin/customers [get]
+// @Summary	顧客一覧取得
+// @Tags Admin
+// @Description	全顧客を一覧で取得します
+// @Produce	application/json
+// @Accept  application/json
+// @Security Token
+// @Param query query req.CustomerQuery  true  "ユーザー情報"
+// @Router /admin/customers [get]
 func (a *AdminController) GetCustomers(c echo.Context) error {
 	slog.Info("GetCustomers is invoked")
 	var query req.CustomerQuery
@@ -86,12 +87,12 @@ func (a *AdminController) GetCustomers(c echo.Context) error {
 
 // GetCustomer godoc
 //
-//	@Summary		顧客取得
+//	@Summary		顧客情報取得
 //	@Tags			Admin
-//	@Description	顧客を一件取得します
-//	@Produce		json
+//	@Description	顧客情報を取得します
+//	@Produce		application/json
 //	@Security		Token
-//	@Param			customerId		query	int	true	"Customer ID"
+//	@Param customerId path int  true  "顧客ID"
 //	@Router			/admin/customers/{customerId} [get]
 func (a *AdminController) GetCustomer(c echo.Context) error {
 	slog.Info("GetCustomer is invoked")
@@ -109,10 +110,10 @@ func (a *AdminController) GetCustomer(c echo.Context) error {
 //	@Summary		投稿取得
 //	@Tags			Admin
 //	@Description	顧客ごとの投稿データを一覧で取得します
-//	@Produce		json
+//	@Produce		application/json
 //	@Security		Token
-//	@Param			customerId		query	int	true	"Customer ID"
-//	@Router			/admin/customers/{customer_id}/posts [get]
+//	@Param customerId path int  true  "顧客ID"
+//	@Router			/admin/customers/{customerId}/posts [get]
 func (a *AdminController) GetPostsByCustomer(c echo.Context) error {
 	slog.Info("GetPostsByCustomer is invoked")
 	customerIdParam := c.Param("customer_id")
@@ -131,12 +132,13 @@ func (a *AdminController) GetPostsByCustomer(c echo.Context) error {
 
 // GetAdmins godoc
 //
-//	@Summary		管理者ユーザー一覧取得
-//	@Tags			Admin
-//	@Description	管理者ユーザーを一覧で取得します
-//	@Produce		json
-//	@Security		Token
-//	@Router			/admin/admins [get]
+// @Summary		管理者ユーザー一覧取得
+// @Tags		Admin
+// @Description	管理者ユーザーを一覧で取得します
+// @Param query query req.AdminQuery  true  "管理者情報"
+// @Produce		application/json
+// @Security	Token
+// @Router		/admin/admins [get]
 func (a *AdminController) GetAdmins(c echo.Context) error {
 	slog.Info("GetAdmins is invoked")
 	var query req.AdminQuery
@@ -152,7 +154,7 @@ func (a *AdminController) GetAdmins(c echo.Context) error {
 //	@Summary		ログイン中の管理者情報取得
 //	@Description	ログイン中の管理者情報取得します
 //	@Tags			Admin
-//	@Produce		json
+//	@Produce		application/json
 //	@Security		Token
 //	@Param			adminId		query	int	true	"Admin ID"
 //	@Router			/admin/admins/i [get]
@@ -165,15 +167,15 @@ func (a *AdminController) GetAdmin(c echo.Context) error {
 
 // RegisterAdmin godoc
 //
-//	@Summary		管理者ユーザーの作成
-//	@Description	管理者ユーザーを作成します
-//	@Tags			Admin
-//	@Produce		json
-//	@Security		Token
-//	@Param			name			formData	string	false	"Name"
-//	@Param			password		formData	string	false	"Password"
-//	@Param			email			formData	string	false	"Email"
-//	@Router			/admin/register/admin [post]
+// @Summary	管理者ユーザーの作成
+// @Description	管理者ユーザーを作成します
+// @Tags Admin
+// @Produce	application/json
+// @Accept application/json
+// @Security Token
+// @Param  body body req.CreateAdminBody  true  "管理者情報"
+// @Success      200   {object}  res.Admin
+// @Router	/admin/register/admin [post]
 func (a *AdminController) RegisterAdmin(c echo.Context) error {
 	slog.Info("RegisterAdmin is invoked")
 	var admin req.CreateAdminBody

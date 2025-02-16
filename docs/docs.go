@@ -30,6 +30,28 @@ const docTemplate = `{
                     "Admin"
                 ],
                 "summary": "管理者ユーザー一覧取得",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "email",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "partialName",
+                        "in": "query"
+                    }
+                ],
                 "responses": {}
             }
         },
@@ -68,6 +90,9 @@ const docTemplate = `{
                     }
                 ],
                 "description": "全顧客を一覧で取得します",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -75,6 +100,38 @@ const docTemplate = `{
                     "Admin"
                 ],
                 "summary": "顧客一覧取得",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "email",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "facebookToken",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "isFacebookToken",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "partialName",
+                        "in": "query"
+                    }
+                ],
                 "responses": {}
             }
         },
@@ -85,20 +142,20 @@ const docTemplate = `{
                         "Token": []
                     }
                 ],
-                "description": "顧客を一件取得します",
+                "description": "顧客情報を取得します",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Admin"
                 ],
-                "summary": "顧客取得",
+                "summary": "顧客情報取得",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Customer ID",
+                        "description": "顧客ID",
                         "name": "customerId",
-                        "in": "query",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -123,9 +180,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Customer ID",
+                        "description": "顧客ID",
                         "name": "customerId",
-                        "in": "query",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -136,7 +193,10 @@ const docTemplate = `{
             "post": {
                 "description": "管理者としてログインします",
                 "consumes": [
-                    "application/x-www-form-urlencoded"
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
                 ],
                 "tags": [
                     "Admin"
@@ -144,21 +204,23 @@ const docTemplate = `{
                 "summary": "ログイン",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Email",
-                        "name": "email",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Password",
-                        "name": "password",
-                        "in": "formData",
-                        "required": true
+                        "description": "ユーザー情報",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/req.User"
+                        }
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "トークン",
+                        "schema": {
+                            "$ref": "#/definitions/res.Auth"
+                        }
+                    }
+                }
             }
         },
         "/admin/register/admin": {
@@ -169,6 +231,9 @@ const docTemplate = `{
                     }
                 ],
                 "description": "管理者ユーザーを作成します",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -178,25 +243,23 @@ const docTemplate = `{
                 "summary": "管理者ユーザーの作成",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Name",
-                        "name": "name",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Password",
-                        "name": "password",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Email",
-                        "name": "email",
-                        "in": "formData"
+                        "description": "管理者情報",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/req.CreateAdminBody"
+                        }
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/res.Admin"
+                        }
+                    }
+                }
             }
         },
         "/admin/register/customer": {
@@ -207,6 +270,9 @@ const docTemplate = `{
                     }
                 ],
                 "description": "顧客を作成します",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -216,31 +282,23 @@ const docTemplate = `{
                 "summary": "顧客の作成",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Name",
-                        "name": "name",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Password",
-                        "name": "password",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Email",
-                        "name": "email",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "WordPress URL",
-                        "name": "wordpress_url",
-                        "in": "formData"
+                        "description": "顧客作成用リクエスト",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/req.CreateCustomerBody"
+                        }
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/res.Customer"
+                        }
+                    }
+                }
             }
         },
         "/badge/execute": {
@@ -329,14 +387,9 @@ const docTemplate = `{
         },
         "/customer/login": {
             "post": {
-                "security": [
-                    {
-                        "Token": []
-                    }
-                ],
                 "description": "顧客としてログインします",
                 "consumes": [
-                    "application/x-www-form-urlencoded"
+                    "application/json"
                 ],
                 "tags": [
                     "Customer"
@@ -344,19 +397,146 @@ const docTemplate = `{
                 "summary": "ログイン",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Email",
-                        "name": "email",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Password",
-                        "name": "password",
-                        "in": "formData"
+                        "description": "ユーザー情報",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/req.User"
+                        }
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/res.Auth"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "req.CreateAdminBody": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "req.CreateCustomerBody": {
+            "type": "object",
+            "properties": {
+                "delete_hash_flag": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "email": {
+                    "type": "string",
+                    "example": "yuki@gmail.com"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "yuki"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "wordpress_url": {
+                    "type": "string",
+                    "example": "example.com"
+                }
+            }
+        },
+        "req.User": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "test@test.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "123456"
+                }
+            }
+        },
+        "res.Admin": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "res.Auth": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "res.Customer": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "delete_hash_flag": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "facebook_token": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "instagram_id": {
+                    "type": "string"
+                },
+                "instagram_name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "wordpress_url": {
+                    "type": "string"
+                }
             }
         }
     },
